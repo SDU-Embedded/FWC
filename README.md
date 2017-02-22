@@ -2,7 +2,7 @@
 An Iptables compiler written in PERL6
 
 
-# How to install PERL6
+## How to install PERL6
 ```sh
 wget https://rakudo.perl6.org/downloads/star/rakudo-star-2017.01.tar.gz
 tar xfz rakudo-star-2017.01.tar.gz
