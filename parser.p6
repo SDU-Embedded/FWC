@@ -6,7 +6,7 @@ grammar TestGrammar {
 	token TOP { <policy> }
 	token policy {
 		<header>
-		<rule>*
+		<Rule>*
 	}
 
 	rule header {
@@ -17,32 +17,20 @@ grammar TestGrammar {
 		\w+	
 	}
 
-	rule rule {
+	rule Rule {
 		<FromZone=word> '=>' <ToZone=word>
 	}
 
 	token space {\s*}
 	token Protocol { <[A..Za..z]>* }
 	token colon   { \s* ':' \s* }
-
-#    token TOP { "Policy"<space><protocol><colon>'\n'<space><rules>}
-
-
-#    token rule {<from>'?'<to>}
-#    token rules {<rule>*}
-
-#    token from {<[A..Za..z]>*}
-#    token to {<[A..Za..z]>*}
 }
 
 class TestActions {
     method TOP($/) {
-#       say $/;
-#        $/.make($/);
     }
     method Protocol($proto){
 	say "Protocol found: $proto"
-#       say $/;
    }
    method FromZone($zone){
 	say "From zone: $zone"
@@ -51,6 +39,10 @@ class TestActions {
    method ToZone($zone){
 	say "To zone: $zone"
    }
+
+   method Rule($rule){
+	say "Rule found, from: $rule<FromZone>, to: $rule<ToZone>"
+  }
 }
 
 
@@ -67,10 +59,8 @@ for @policy_files -> $file {
 	     note "Unable to open and read file,$file, $!";
 	}
 
-#	say $policy_content;
 	my $actions = TestActions.new;
 	my $match = TestGrammar.parse($policy_content, :$actions);
-#	say $match;         # ｢40｣
 	if $match {
 #		say "\t Found protocol: $match<protocol>";
 #		say $match;
