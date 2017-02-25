@@ -1,8 +1,7 @@
+#!/opt/rakudo-star-2017.01/bin/perl6
 use v6.c;
 
 grammar TestGrammar {
-
-
 	token TOP { <policy> }
 	token policy {
 		<header>
