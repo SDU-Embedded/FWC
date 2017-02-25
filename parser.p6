@@ -13,16 +13,20 @@ grammar TestGrammar {
 	}
 
 	token word {
-		\w+	
+		\w+
 	}
 
 	rule Rule {
-		<FromZone=word> '=>' <ToZone=word>
+		<FromZone=word><space> <action><space><ToZone=word>
 	}
 
 	token space {\s*}
 	token Protocol { <[A..Za..z]>* }
 	token colon   { \s* ':' \s* }
+
+	proto token action {*}
+	token action:sym<=\>>   { <sym> } # => 
+	token action:sym<\<=> { <sym> }   # <=
 }
 
 class TestActions {
@@ -35,6 +39,13 @@ class TestActions {
 	say "From zone: $zone"
    }
 
+   method action:sym<=\>>($dir){
+	print "Direction in\n";
+   }
+
+   method action:sym<\<=>($dir){
+	print "Direction out\n";
+   }
    method ToZone($zone){
 	say "To zone: $zone"
    }
