@@ -9,7 +9,11 @@ grammar TestGrammar {
 	}
 
 	rule header {
-		"Policy" <space> <Protocol> <colon> <space>
+		"Policy" <space> <Protocol>[ \(<Option>\) ]? <colon> <space>
+	}
+
+	token Option {
+		\d+
 	}
 
 	token word {
@@ -21,7 +25,7 @@ grammar TestGrammar {
 	}
 
 	token space {\s*}
-	token Protocol { <[A..Za..z]>* }
+	token Protocol { <[A..Za..z]>*}
 	token colon   { \s* ':' \s* }
 
 	proto token action {*}
@@ -39,6 +43,9 @@ class TestActions {
 	say "From zone: $zone"
    }
 
+   method Option($opt) {
+	say "Option: " ~ $opt; 
+   }
    method action:sym<=\>>($dir){
 	print "Direction in\n";
    }
