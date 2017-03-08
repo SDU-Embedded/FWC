@@ -16,12 +16,16 @@ grammar TestGrammar {
 		\d+
 	}
 
+	token Option2 {
+		\w+
+	}
+
 	token word {
 		\w+
 	}
 
 	rule Rule {
-		<FromZone=word><space> <action><space><ToZone=word>
+		<FromZone=word><space> <action><space><ToZone=word>[","\{<Option2>\}]?
 	}
 
 	token space {\s*}
@@ -44,6 +48,10 @@ class TestActions {
    }
 
    method Option($opt) {
+	say "Option: " ~ $opt; 
+   }
+
+   method Option2($opt) {
 	say "Option: " ~ $opt; 
    }
    method action:sym<=\>>($dir){
