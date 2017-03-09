@@ -1,9 +1,10 @@
 #!/usr/bin/perl6
 use v6;
 
-use Parser;
+use FwcGrammar;
+use FwcActions;
 
-my $actions = Parser::Actions.new;
+my $actions = FwcActions.new;
 
 
 # Match files with "policy" extension
@@ -19,7 +20,7 @@ for @policy_files -> $file {
         }
 
 
-        my $match = Parser.parse($policy_content, :$actions);
+        my $match = FwcGrammar.parse($policy_content, :$actions);
         if $match {
 #               say "\t Found protocol: $match<protocol>";
 #               say $match;
