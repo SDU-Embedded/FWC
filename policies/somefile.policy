@@ -1,0 +1,2 @@
+Policy ssh:
+	Homenet=>World,{cooloption}

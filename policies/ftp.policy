@@ -1,0 +1,3 @@
+Policy ftp(1234):
+	Internet   =>  Gateway
+	Zone1   =>  Zone2
