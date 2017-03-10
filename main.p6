@@ -1,31 +1,48 @@
-#!/usr/bin/perl6
+#!/opt/rakudo-star-2017.01/bin/perl6
 use v6;
 
 use FwcGrammar;
 use FwcActions;
 
-my $actions = FwcActions.new;
 
 
-# Match files with "policy" extension
-my @policy_files = dir("policies/", test => /.*\.policy$/);
-my $number_of_policies = @policy_files.elems;
-say "Number of policy files found: $number_of_policies";
+
+multi MAIN( Str :$policies=".", Int :$verbose = 0, Bool :$dumper = False ) {  #Named parameters
+        say "Policy path: $policies";
+        say "Verbose: $verbose";
 
 
-for @policy_files -> $file {
-        my $policy_content =  try slurp($file);
-        if ($!) {
-             note "Unable to open and read file,$file, $!";
-        }
+	my $actions = FwcActions.new;
+
+	# Match files with "policy" extension
+	my @policy_files = dir("policies/", test => /.*\.policy$/);
+	my $number_of_policies = @policy_files.elems;
+	say "Number of policy files found: $number_of_policies";
 
 
-        my $match = FwcGrammar.parse($policy_content, :$actions);
-        if $match {
-#               say "\t Found protocol: $match<protocol>";
-#               say $match;
-        } else {
-                say "no match"
-        }
+	for @policy_files -> $file {
+	        my $policy_content =  try slurp($file);
+	        if ($!) {
+	             note "Unable to open and read file,$file, $!";
+	        }
+
+
+	        my $match = FwcGrammar.parse($policy_content, :$actions).made;
+
+
+		say $match;
+		for @$match -> $p {
+		    say "Key: $p.key()\tValue: $p.value()";
+		}
+
+
+#	        if $match {
+	#               say "\t Found protocol: $match<protocol>";
+	#               say $match;
+#	        } else {
+#	                say "no match"
+#	        }
+	exit 1;
+	}
+	say "This code took " ~ (time - CHECK time) ~ "s to compile";
 }
-

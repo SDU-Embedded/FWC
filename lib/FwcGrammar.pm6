@@ -1,36 +1,35 @@
-#!/usr/bin/perl6
-use v6;
-unit class GrammarActions;
+unit grammar FwcGrammar;
 
-   method TOP($/) {
-   }
-    method Protocol($proto){
-        say "Protocol found: $proto"
-   }
-   method FromZone($zone){
-        say "From zone: $zone"
-   }
+token TOP { <policy> }
+token policy {
+	<header>
+	<Rule>*
+}
 
-   method Option($opt) {
-        say "Option: " ~ $opt;
-   }
+rule header {
+	"Policy" <space> <Protocol>[ \(<Option>\) ]? <colon> <space>
+}
 
-   method Option2($opt) {
-        say "Option: " ~ $opt;
-   }
-   method action:sym<=\>>($dir){
-        print "Direction in\n";
-   }
+token Option {
+	\d+
+}
 
-   method action:sym<\<=>($dir){
-        print "Direction out\n";
-   }
-   method ToZone($zone){
-        say "To zone: $zone"
-   }
+token Option2 {
+	\w+
+}
 
-   method Rule($rule){
-        say "Rule found, from: $rule<FromZone>, to: $rule<ToZone>"
-  }
+token word {
+	\w+
+}
 
+rule Rule {
+	<FromZone=word><space> <action><space><ToZone=word>[","\{<Option2>\}]?
+}
 
+token space {\s*}
+token Protocol { <[A..Za..z]>*}
+token colon   { \s* ':' \s* }
+
+proto token action {*}
+token action:sym<=\>>   { <sym> } # => 
+token action:sym<\<=> { <sym> }   # <=

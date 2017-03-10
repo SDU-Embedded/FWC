@@ -1,20 +1,26 @@
 #!/usr/bin/perl6
-
+use v6;
 
 sub dumper(%data){
 	for %data.kv -> $key,$value {
 		say "Key: " ~ $key ~ " value: " ~$value;
-	}	
-#	say %data;
+	}
+	say %data;
 }
 
-my %zones = zone1 => "=>", zone2 => "||", zone3 => "awesomenok";
+#my %zones = zone1 => "=>", zone2 => "||", zone3 => "awesomenok";
+#%zones.push("zone4"=>"REJECT");
 
-%zones.push("zone4"=>"REJECT");
-#say  %zones;
-#print "Dump map %zones<zone3>\n";
+my %zones1 = "world" => "ssh", "vlan5" => "ftp";
+my %zones2 = homenet => %zones1, zone2 => "cool";
 
-dumper(%zones);
 
-#dumper(%*ENV);
-#say %*ENV
+say %zones2<homenet><world>
+
+#%zones{'zone1'}= 10;
+
+
+#dumper(%zones);
+
+
+#%zones<World><Internet>
