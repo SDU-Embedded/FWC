@@ -10,13 +10,37 @@ method TOP($/) {
 	 $/.make: $<policy>.made;
 }
 
+method header($/){
+	unless ($<Options>.made) {
+		say "No options specified";
+		$/.make: "Protocol" => $<Protocol>.made;
+	}
+#	$/.make: "Protocol" => $<Protocol>.made, "Options" => $<Options>.made;
+}
 
 method policy($/) {
-	say $<Rule>[1].made; # array
-	$/.make: $<Rule>».made;
+	my (%rules, %header);
+	
+	#%header = $<GlobalOption>.made;
+	
+
+	for  $<Rule> -> $rule {
+		my $rule1 = $rule.made;
+		my Str $from = $rule1[0].Str;
+		my Str $to = $rule1[1].Str;
+
+		my $tozone = $to => %header;
+		%rules{$from} = $tozone;
+	}
+
+	say "Content of map: " ~%rules;
+
+	$/.make: %rules;
 }
-method Protocol($proto){
-	$/.make: "test" => "coolnok";
+
+method Protocol($/){
+#	$/.make: "test" => "coolnok";
+	$/.make: $/;
 #	make $proto;
 #	say "Protocol found: $proto"
 }
@@ -26,18 +50,20 @@ method FromZone($zone){
 #	say "From zone: $zone"
 }
 
-method Option($opt) {
+method GlobalOption($opt) {
 #	say "Option: " ~ $opt; 
 }
 
-method Option2($opt) {
+method LocalOption($opt) {
 #	say "Option: " ~ $opt; 
 }
 method action:sym<=\>>($dir){
+#	$/.make: $dir;
 #	print "Direction in\n";
 }
 
 method action:sym<\<=>($dir){
+#	$/.make: $dir;
 #	print "Direction out\n";
 }
 method ToZone($zone){
@@ -45,7 +71,12 @@ method ToZone($zone){
 #	say "To zone: $zone"
 }
 
-method Rule($/){
-#	say "Rule found, from: $rule<FromZone>, to: $rule<ToZone>";
-	$/.make: $<FromZone> => $<ToZone>;
+method Rule($tmp){
+
+	my ($from, $to) = ($tmp<FromZone>, $tmp<ToZone>);
+	if $tmp<action> ~~ /"<"/ {
+		($to, $from) = ($from, $to);
+	}
+
+	$tmp.make: ($from, $to);
 }

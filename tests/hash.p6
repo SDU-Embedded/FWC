@@ -15,12 +15,19 @@ my %zones1 = "world" => "ssh", "vlan5" => "ftp";
 my %zones2 = homenet => %zones1, zone2 => "cool";
 
 
-say %zones2<homenet><world>
+say %zones2<homenet><world>;
+
+
+my %hashmap;
+
+my  $test = "test";
+%hashmap<$test> = "cool";
+
 
 #%zones{'zone1'}= 10;
 
 
-#dumper(%zones);
+dumper(%hashmap);
 
 
 #%zones<World><Internet>

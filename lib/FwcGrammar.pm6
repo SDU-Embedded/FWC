@@ -1,3 +1,4 @@
+#!/usr/bin/perl6
 unit grammar FwcGrammar;
 
 token TOP { <policy> }
@@ -7,14 +8,14 @@ token policy {
 }
 
 rule header {
-	"Policy" <space> <Protocol>[ \(<Option>\) ]? <colon> <space>
+	"Policy" <space> <Protocol>[ \(<GlobalOption>\) ]? <colon> <space>
 }
 
-token Option {
+token GlobalOption {
 	\d+
 }
 
-token Option2 {
+token LocalOption {
 	\w+
 }
 
@@ -23,7 +24,7 @@ token word {
 }
 
 rule Rule {
-	<FromZone=word><space> <action><space><ToZone=word>[","\{<Option2>\}]?
+	<FromZone=word><space> <action><space><ToZone=word>[","\{<LocalOption>\}]?
 }
 
 token space {\s*}

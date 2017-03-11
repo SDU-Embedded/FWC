@@ -30,10 +30,10 @@ multi MAIN( Str :$policies=".", Int :$verbose = 0, Bool :$dumper = False ) {  #N
 	        my $match = FwcGrammar.parse($policy_content, :$actions).made;
 
 
-		say $match;
-		for @$match -> $p {
-		    say "Key: $p.key()\tValue: $p.value()";
-		}
+		#say $match;
+#		for @$match -> $p {
+#		    say "Key: $p.key()\tValue: $p.value()";
+#		}
 
 
 #	        if $match {
