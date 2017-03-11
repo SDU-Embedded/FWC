@@ -2,10 +2,10 @@
 use v6;
 
 sub dumper(%data){
+	say ""
 	for %data.kv -> $key,$value {
 		say "Key: " ~ $key ~ " value: " ~$value;
 	}
-	say %data;
 }
 
 #my %zones = zone1 => "=>", zone2 => "||", zone3 => "awesomenok";
