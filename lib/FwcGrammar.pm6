@@ -3,11 +3,11 @@ unit grammar FwcGrammar;
 
 token TOP { <policy> }
 token policy {
-	<header>
+	<Header>
 	<Rule>*
 }
 
-rule header {
+rule Header {
 	"Policy" <space> <Protocol>[ \(<GlobalOption>\) ]? <colon> <space>
 }
 
