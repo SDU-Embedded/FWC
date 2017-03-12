@@ -24,7 +24,11 @@ method policy($/) {
 		my Str $from = $rule1[0].Str;
 		my Str $to = $rule1[1].Str;
 		my $tozone = $to => $rule1[2].push: %header; # Add global to local parameters
-		%rules{$from} = $tozone;
+
+#		say "Debug: "~ @(%rules{$from}).elems;
+		append(%rules{$from}, $tozone);
+#		push(@(%rules{$from}),$tozone);
+#		%rules{$from} = $tozone;
 	}
 
 	$/.make: %rules;

@@ -1,3 +1,3 @@
 Policy ftp{f=kage,e=10}:
-	Internet   =>  Gateway{a=100,c=1337}
-	Zone1   <=  Zone2
+	Internet   <=  Gateway{a=100,c=1337}
+	Zone1   <=  Internet

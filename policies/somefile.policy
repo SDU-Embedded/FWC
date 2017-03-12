@@ -1,2 +1,2 @@
 Policy ssh{cool=nok}:
-	Homenet=>World{fun=cooloption}
+	Internet=>World{fun=cooloption}

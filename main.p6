@@ -9,13 +9,15 @@ use Text::Table::Simple;
 
 sub dumper(%data, $format = "table"){
 	my @rows;
-        for %data.kv -> $from, $rule {
-		my ($to, %options) = $rule.kv;
+        for %data.kv -> $from, @rules {
+		for @rules -> $rule {
+			my ($to, %options) = $rule.kv;
 
-		my $protocol = %options<Protocol>;
-		%options<Protocol>:delete;
+			my $protocol = %options<Protocol>;
+			%options<Protocol>:delete;
 
-		@rows.push: ($protocol, $from, $to, %options.perl);
+			@rows.push: ($protocol, $from, $to, %options.perl);
+		}
         }
 
 	my @headers = ['Protocol','From','To','Options'];
