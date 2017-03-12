@@ -8,15 +8,23 @@ token policy {
 }
 
 rule Header {
-	"Policy" <space> <Protocol>[ \(<GlobalOption>\) ]? <colon> <space>
+	"Policy" <space> <Protocol>[\{<GlobalOptions>\}]?  <colon> <space>
 }
 
-token GlobalOption {
-	\d+
+token GlobalOptions {
+	<kvpair>*
 }
 
-token LocalOption {
-	\w+
+token LocalOptions {
+	<kvpair>*
+}
+
+token kvpair { 
+	<Key=identifier> '=' <Value=word>[',']?
+}
+
+token identifier {
+	<alpha>* # Only alphabetic characters
 }
 
 token word {
@@ -24,7 +32,7 @@ token word {
 }
 
 rule Rule {
-	<FromZone=word><space> <action><space><ToZone=word>[","\{<LocalOption>\}]?
+	<FromZone=word><space> <action><space><ToZone=word>[\{<LocalOptions>\}]?
 }
 
 token space {\s*}

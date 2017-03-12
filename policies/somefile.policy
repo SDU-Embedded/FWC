@@ -1,2 +1,2 @@
-Policy ssh:
-	Homenet=>World,{cooloption}
+Policy ssh{cool=nok}:
+	Homenet=>World{fun=cooloption}
