@@ -1,6 +1,7 @@
 #!/opt/rakudo-star-2017.01/bin/perl6
 use v6;
 
+use lib "./lib";
 use FwcGrammar;
 use FwcActions;
 
