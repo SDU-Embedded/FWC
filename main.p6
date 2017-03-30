@@ -82,10 +82,12 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 
 
 	# Match files with "zone" extension
-	my %FwcZones;
 	my @zone_files = dir($zones, test => /.*\.zone$/);
 	my $number_of_zones = @zone_files.elems;
 	say "Number of zones files found: $number_of_zones";
+
+	# Loop through all policy files, parse and append
+	my %FwcZones;
 	for @zone_files -> $file {
 	        my $zone_content =  try slurp($file);
 	        if ($!) {
@@ -94,17 +96,37 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 		%FwcZones.append: Zones::FwcGrammar.parse($zone_content, actions => Zones::FwcActions.new).made
 	}
 
-	say %FwcZones;
 
 	# Loop through all policy files, parse and append
-	my %FwcRules;
+	my (%FwcRules, %FwcAllZones);
 	for @policy_files -> $file {
 	        my $policy_content =  try slurp($file);
 	        if ($!) {
 	             note "Unable to open and read file,$file, $!";
 	        }
 
-	        %FwcRules.append: Policies::FwcGrammar.parse($policy_content, actions=> Policies::FwcActions.new).made;
+		my %rules = Policies::FwcGrammar.parse($policy_content, actions=> Policies::FwcActions.new).made;
+	        %FwcRules.append: %rules<Rules>[0];
+		%FwcAllZones.append: %rules<AllZones>[0];
 	}
 	dumper(%FwcRules, $dump_format) if $dump_rules;
+
+	say "Number of zones: ", %FwcZones.elems;
+	say "Number of policies: ", %FwcAllZones.elems;
+
+	if %FwcAllZones.elems > %FwcRules.elems {
+		say "ERROR: Unused zone(s):";
+
+		for keys %FwcAllZones -> $key {
+			if %FwcRules{$key}:exists {
+				#say "\t$key does exist";
+			} else {
+				say "\t\"$key\" is not a defind zone";
+			}
+		}
+	}
+
+	if %FwcAllZones.elems < %FwcRules.elems {
+		say "ERROR: Undefined zone(s):"
+	}
 }
