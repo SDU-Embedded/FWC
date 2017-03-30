@@ -1,5 +1,5 @@
 #!/usr/bin/perl6
-unit grammar FwcGrammar;
+unit grammar Policies::FwcGrammar;
 
 token TOP { <policy> }
 token policy {
@@ -21,6 +21,10 @@ token LocalOptions {
 
 token kvpair { 
 	<Key=identifier> '=' <Value=word>[',']?
+}
+
+token option {
+	<[\d]+[.]>+
 }
 
 token identifier {

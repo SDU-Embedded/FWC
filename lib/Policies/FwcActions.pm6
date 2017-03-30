@@ -1,7 +1,7 @@
 #!/usr/bin/perl6
 use v6;
 
-unit class FwcActions;
+unit class Policies::FwcActions;
 
 method TOP($/) {
 	 $/.make: $<policy>.made;
@@ -25,10 +25,7 @@ method policy($/) {
 		my Str $to = $rule1[1].Str;
 		my $tozone = $to => $rule1[2].push: %header; # Add global to local parameters
 
-#		say "Debug: "~ @(%rules{$from}).elems;
 		append(%rules{$from}, $tozone);
-#		push(@(%rules{$from}),$tozone);
-#		%rules{$from} = $tozone;
 	}
 
 	$/.make: %rules;
@@ -66,6 +63,7 @@ method action:sym<=\>>($dir){
 
 method action:sym<\<=>($dir){
 }
+
 method Rule($tmp){
 	my %options;
 

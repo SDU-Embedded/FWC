@@ -2,60 +2,15 @@
 use v6;
 
 use lib "./lib";
-use FwcGrammar;
-use FwcActions;
+
+use Policies::FwcGrammar;
+use Policies::FwcActions;
+
+use Zones::FwcActions;
+use Zones::FwcGrammar;
 
 use MONKEY-SEE-NO-EVAL;
 use Text::Table::Simple;
-
-
-grammar REST {
-	token TOP { <zonedef>+ }
-
-	token zonedef {<zonename><space>is<space>at<space><ip>["/"<cidr>]? [<space>*]? }
-	token zonename {[\w]+}
-	token space {\s+}
-	token ip {[\d ** 1..3] ** 4 % '.'}
-	token cidr { \d **1..2  }
-}
- 
- 
-class REST-actions {
-	method TOP ($/) {
-#		$/.make: $<zonedef>».made 
-		my %zones;
-	        for  $<zonedef> -> $zonedef {
-#	                my $rule1 = $rule.made;
-#	                my Str $from = $rule1[0].Str;
-#	                my Str $to = $rule1[1].Str;
-#	                my $tozone = $to => $rule1[2].push: %header; # Add global to local parameters
-#			say "zonedef: ", $zonedef;
-			%zones.append: $zonedef<zonename> => {'ip' => $zonedef<ip>, 'cidr' => $zonedef<cidr>}
-#        	        append(%rules{$from}, $tozone);
-	        }
-
-	        $/.make: %zones;
-	}
-
-	method zonedef($/){
-#		my %tmp = 'ip' => $<ip>, 
-#			  'zonename' => $<zonename>.made,
-#			  'cidr' => $<cidr>.made;
-#		$/.make: %tmp;
-	}
-
-	method zonename($/){
-		$/.make: $/;
-	}
-
-	method ip($/){
-		$/.make: $/;
-	}	
-
-	method cidr($/) {
-		$/.make: $/;
-	}
-}
 
 
 sub dumper(%data, $format = "table"){
@@ -120,8 +75,6 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
         say "Verbose: $verbose" if $verbose > 0;
 	say "Dumping rules to $dump_format" if $dump_rules;
 
-	my $actions = FwcActions.new;
-
 	# Match files with "policy" extension
 	my @policy_files = dir($policies, test => /.*\.policy$/);
 	my $number_of_policies = @policy_files.elems;
@@ -138,11 +91,10 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	        if ($!) {
 	             note "Unable to open and read file, $file, $!";
 	        }
-		my %zones = REST.parse($zone_content, actions => REST-actions.new).made;
-		%FwcZones.append: %zones;
+		%FwcZones.append: Zones::FwcGrammar.parse($zone_content, actions => Zones::FwcActions.new).made
 	}
 
-#	say %FwcZones{'Internet'}{'ip'};
+	say %FwcZones;
 
 	# Loop through all policy files, parse and append
 	my %FwcRules;
@@ -152,7 +104,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	             note "Unable to open and read file,$file, $!";
 	        }
 
-	        %FwcRules.append: FwcGrammar.parse($policy_content, :$actions).made;
+	        %FwcRules.append: Policies::FwcGrammar.parse($policy_content, actions=> Policies::FwcActions.new).made;
 	}
 	dumper(%FwcRules, $dump_format) if $dump_rules;
 }
