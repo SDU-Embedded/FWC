@@ -8,6 +8,33 @@ use FwcActions;
 use MONKEY-SEE-NO-EVAL;
 use Text::Table::Simple;
 
+
+grammar REST {
+	token TOP { [<zonedef>[\s]?]+ }
+
+	token zonedef {<zonename><space>is<space>at<space><ip>["/"<cidr>]? }
+	token zonename {[\w]+}
+	token space {\s+}
+	token ip {[\d ** 1..3] ** 4 % '.'}
+	token cidr { \d **1..2  }
+}
+ 
+ 
+class REST-actions{
+	method TOP ($/) {
+#		say $/;
+	}
+
+	method zonedef($/){
+#		say $/;
+	}
+
+	method zonename($/){
+#		say $/;
+	}
+}
+
+
 sub dumper(%data, $format = "table"){
 	my @rows;
         for %data.kv -> $from, @rules {
@@ -64,8 +91,9 @@ sub dumper(%data, $format = "table"){
 
 
 
-multi MAIN( Str :$policies=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) {  #Named parameters
+multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) {  #Named parameters
         say "Policy path: $policies";
+	say "Zone path: $zones";
         say "Verbose: $verbose" if $verbose > 0;
 	say "Dumping rules to $dump_format" if $dump_rules;
 
@@ -77,8 +105,21 @@ multi MAIN( Str :$policies=".", Int :$verbose = 0, Bool :$dumper = False, Bool :
 	say "Number of policy files found: $number_of_policies";
 
 
-	my %FwcRules;
+	# Match files with "zone" extension
+	my @zone_files = dir($zones, test => /.*\.zone$/);
+	my $number_of_zones = @zone_files.elems;
+	say "Number of zones files found: $number_of_zones";
+	for @zone_files -> $file {
+	        my $zone_content =  try slurp($file);
+	        if ($!) {
+	             note "Unable to open and read file, $file, $!";
+	        }
+		my $rest = REST.parse($zone_content, actions => REST-actions.new);
+		say $rest;
+	}
 
+	# Loop through all policy files, parse and append
+	my %FwcRules;
 	for @policy_files -> $file {
 	        my $policy_content =  try slurp($file);
 	        if ($!) {
