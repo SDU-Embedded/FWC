@@ -114,19 +114,22 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	say "Number of zones: ", %FwcZones.elems;
 	say "Number of policies: ", %FwcAllZones.elems;
 
-	if %FwcAllZones.elems > %FwcRules.elems {
-		say "ERROR: Unused zone(s):";
-
-		for keys %FwcAllZones -> $key {
-			if %FwcRules{$key}:exists {
-				#say "\t$key does exist";
-			} else {
-				say "\t\"$key\" is not a defind zone";
-			}
+	# Error checking
+	say "ERROR: Undefined zone(s):";
+	for keys %FwcAllZones -> $key {
+		if %FwcZones{$key}:exists {
+			#say "\t$key does exist";
+		} else {
+			say "\t\"$key\" is not a defind zone";
 		}
 	}
 
-	if %FwcAllZones.elems < %FwcRules.elems {
-		say "ERROR: Undefined zone(s):"
+	say "ERROR: Unused zone(s):";
+	for keys %FwcZones -> $key {
+		if %FwcAllZones{$key}:exists {
+			#say "\t$key does exist";
+		} else {
+			say "\t\"$key\" is defind but not used";
+		}
 	}
 }
