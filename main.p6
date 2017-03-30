@@ -10,9 +10,9 @@ use Text::Table::Simple;
 
 
 grammar REST {
-	token TOP { [<zonedef>[\s]?]+ }
+	token TOP { <zonedef>+ }
 
-	token zonedef {<zonename><space>is<space>at<space><ip>["/"<cidr>]? }
+	token zonedef {<zonename><space>is<space>at<space><ip>["/"<cidr>]? [<space>*]? }
 	token zonename {[\w]+}
 	token space {\s+}
 	token ip {[\d ** 1..3] ** 4 % '.'}
@@ -20,17 +20,40 @@ grammar REST {
 }
  
  
-class REST-actions{
+class REST-actions {
 	method TOP ($/) {
-#		say $/;
+#		$/.make: $<zonedef>».made 
+		my %zones;
+	        for  $<zonedef> -> $zonedef {
+#	                my $rule1 = $rule.made;
+#	                my Str $from = $rule1[0].Str;
+#	                my Str $to = $rule1[1].Str;
+#	                my $tozone = $to => $rule1[2].push: %header; # Add global to local parameters
+#			say "zonedef: ", $zonedef;
+			%zones.append: $zonedef<zonename> => {'ip' => $zonedef<ip>, 'cidr' => $zonedef<cidr>}
+#        	        append(%rules{$from}, $tozone);
+	        }
+
+	        $/.make: %zones;
 	}
 
 	method zonedef($/){
-#		say $/;
+#		my %tmp = 'ip' => $<ip>, 
+#			  'zonename' => $<zonename>.made,
+#			  'cidr' => $<cidr>.made;
+#		$/.make: %tmp;
 	}
 
 	method zonename($/){
-#		say $/;
+		$/.make: $/;
+	}
+
+	method ip($/){
+		$/.make: $/;
+	}	
+
+	method cidr($/) {
+		$/.make: $/;
 	}
 }
 
@@ -106,6 +129,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 
 
 	# Match files with "zone" extension
+	my %FwcZones;
 	my @zone_files = dir($zones, test => /.*\.zone$/);
 	my $number_of_zones = @zone_files.elems;
 	say "Number of zones files found: $number_of_zones";
@@ -114,9 +138,11 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	        if ($!) {
 	             note "Unable to open and read file, $file, $!";
 	        }
-		my $rest = REST.parse($zone_content, actions => REST-actions.new);
-		say $rest;
+		my %zones = REST.parse($zone_content, actions => REST-actions.new).made;
+		%FwcZones.append: %zones;
 	}
+
+#	say %FwcZones{'Internet'}{'ip'};
 
 	# Loop through all policy files, parse and append
 	my %FwcRules;
