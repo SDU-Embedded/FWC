@@ -34,11 +34,7 @@ sub dumper(%data, $format = "table"){
 	}
 
 	if $format eq "json" {
-		my $filename = "out.json";
-
-		my $fh = open $filename, :w;
-		$fh.say('{');
-		$fh.say('"FWC":[');
+		say('"FWC":[');
 		my $output;
 		for @rows -> $row {
 			$output ~= '{';
@@ -60,12 +56,24 @@ sub dumper(%data, $format = "table"){
 			$output ~= '},';
 		}
 		$output = chop $output;
-		$fh.say("$output]");
-		$fh.say('}');
-		$fh.close;
+		say("$output]}");
 	}
 }
 
+
+sub dumpZones(%FwcZones){
+	my @rows;
+	for %FwcZones.kv -> $zonename, $ip {
+		$ip{'cidr'} = '-' unless $ip{'cidr'};
+		@rows.push: ($zonename, $ip{'ip'}, $ip{'cidr'});
+	}
+
+
+	my @headers = ['Zone name','IP','CIDR'];
+	my @table   = lol2table(@headers,@rows);
+
+	.say  for @table;
+}
 
 
 
@@ -95,7 +103,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	        }
 		%FwcZones.append: Zones::FwcGrammar.parse($zone_content, actions => Zones::FwcActions.new).made
 	}
-
+	dumpZones(%FwcZones);
 
 	# Loop through all policy files, parse and append
 	my (%FwcRules, %FwcAllZones);
