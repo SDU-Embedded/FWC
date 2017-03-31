@@ -30,11 +30,11 @@ sub dumper(%data, $format = "table"){
 	my @table   = lol2table(@headers,@rows);
 
 	if $format eq "table" {
-		.say  for @table;
+		.note  for @table;
 	}
 
 	if $format eq "json" {
-		say('"FWC":[');
+		say('{"FWC":[');
 		my $output;
 		for @rows -> $row {
 			$output ~= '{';
@@ -72,27 +72,27 @@ sub dumpZones(%FwcZones){
 	my @headers = ['Zone name','IP','CIDR'];
 	my @table   = lol2table(@headers,@rows);
 
-	.say  for @table;
+	.note  for @table;
 }
 
 
 
 multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) {  #Named parameters
-        say "Policy path: $policies";
-	say "Zone path: $zones";
-        say "Verbose: $verbose" if $verbose > 0;
-	say "Dumping rules to $dump_format" if $dump_rules;
+        note "Policy path: $policies";
+	note "Zone path: $zones";
+        note "Verbose: $verbose" if $verbose > 0;
+	note "Dumping rules to $dump_format" if $dump_rules;
 
 	# Match files with "policy" extension
 	my @policy_files = dir($policies, test => /.*\.policy$/);
 	my $number_of_policies = @policy_files.elems;
-	say "Number of policy files found: $number_of_policies";
+	note "Number of policy files found: $number_of_policies";
 
 
 	# Match files with "zone" extension
 	my @zone_files = dir($zones, test => /.*\.zone$/);
 	my $number_of_zones = @zone_files.elems;
-	say "Number of zones files found: $number_of_zones";
+	note "Number of zones files found: $number_of_zones";
 
 	# Loop through all policy files, parse and append
 	my %FwcZones;
@@ -119,25 +119,23 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	}
 	dumper(%FwcRules, $dump_format) if $dump_rules;
 
-	say "Number of zones: ", %FwcZones.elems;
-	say "Number of policies: ", %FwcAllZones.elems;
+	note "Number of zones: ", %FwcZones.elems;
+	note "Number of policies: ", %FwcAllZones.elems;
 
 	# Error checking
-	say "ERROR: Undefined zone(s):";
 	for keys %FwcAllZones -> $key {
 		if %FwcZones{$key}:exists {
 			#say "\t$key does exist";
 		} else {
-			say "\t\"$key\" is not a defind zone";
+			 note "\t\"$key\" is not a defind zone";
 		}
 	}
 
-	say "ERROR: Unused zone(s):";
 	for keys %FwcZones -> $key {
 		if %FwcAllZones{$key}:exists {
 			#say "\t$key does exist";
 		} else {
-			say "\t\"$key\" is defind but not used";
+			note "\t\"$key\" is defind but not used";
 		}
 	}
 }
