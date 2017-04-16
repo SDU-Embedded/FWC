@@ -1,7 +1,13 @@
 #!/opt/rakudo-star-2017.01/bin/perl6
-use v6;
+use v6.c;
 
 use lib "./lib";
+
+# Perl5 compatibility
+use Inline::Perl5;
+my $p5 = Inline::Perl5.new;
+$p5.use('NetAddr::IP');
+$p5.use('IO::Socket::IP');
 
 use Policies::FwcGrammar;
 use Policies::FwcActions;
@@ -11,6 +17,86 @@ use Zones::FwcGrammar;
 
 use MONKEY-SEE-NO-EVAL;
 use Text::Table::Simple;
+
+
+multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) {  #Named parameters
+        note "Policy path: $policies";
+	note "Zone path: $zones";
+        note "Verbose: $verbose" if $verbose > 0;
+	note "Dumping rules to $dump_format" if $dump_rules;
+
+	# Match files with "policy" extension
+	my @policy_files = dir($policies, test => /.*\.policy$/);
+	my $number_of_policies = @policy_files.elems;
+	note "Number of policy files found: $number_of_policies";
+
+
+	# Match files with "zone" extension
+	my @zone_files = dir($zones, test => /.*\.zone$/);
+	my $number_of_zones = @zone_files.elems;
+	note "Number of zones files found: $number_of_zones";
+
+	# Loop through all policy files, parse and append
+	my %FwcZones;
+	for @zone_files -> $file {
+	        my $zone_content =  try slurp($file);
+	        if ($!) {
+	             note "Unable to open and read file, $file, $!";
+	        }
+		%FwcZones.append: Zones::FwcGrammar.parse($zone_content, actions => Zones::FwcActions.new).made
+	}
+	dumpZones(%FwcZones);
+
+	# Loop through all policy files, parse and append
+	my (%FwcRules, %FwcAllZones);
+	for @policy_files -> $file {
+	        my $policy_content =  try slurp($file);
+	        if ($!) {
+	             note "Unable to open and read file,$file, $!";
+	        }
+
+		my %rules = Policies::FwcGrammar.parse($policy_content, actions=> Policies::FwcActions.new).made;
+	        %FwcRules.append: %rules<Rules>[0];
+		%FwcAllZones.append: %rules<AllZones>[0];
+	}
+	dumper(%FwcRules, $dump_format) if $dump_rules;
+
+	note "Number of zones: ", %FwcZones.elems;
+	note "Number of policies: ", %FwcAllZones.elems;
+
+	# Error checking
+	for keys %FwcAllZones -> $key {
+		if %FwcZones{$key}:exists {
+			#say "\t$key does exist";
+		} else {
+			 note "\t\"$key\" is not a defind zone";
+		}
+	}
+
+	for keys %FwcZones -> $key {
+		if %FwcAllZones{$key}:exists {
+			#say "\t$key does exist";
+		} else {
+			note "\t\"$key\" is defind but not used";
+		}
+	}
+
+        for %FwcRules.kv -> $from, @rules {
+		#her
+	        my $FromIp = $p5.invoke('NetAddr::IP','new', %FwcZones{$from}{'ip'} ~ '/' ~ %FwcZones{$from}{'cidr'});
+                for @rules -> $rule {
+                        my ($to, %options) = $rule.kv;
+                        my $protocol = %options<Protocol>;
+
+			my ($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
+#			say "From: $from %FwcZones{$from}{'ip'}, To $to %FwcZones{$to}{'ip'}, Protocol: $protocol, Port: $port";
+		        my $ToIp = $p5.invoke('NetAddr::IP','new',%FwcZones{$to}{'ip'} ~ '/' ~ %FwcZones{$to}{'cidr'});
+
+			say "%FwcZones{$from}{'ip'} NAT to %FwcZones{$to}{'ip'}" unless $ToIp.contains($FromIp);
+                }
+        }
+
+}
 
 
 sub dumper(%data, $format = "table"){
@@ -75,67 +161,3 @@ sub dumpZones(%FwcZones){
 	.note  for @table;
 }
 
-
-
-multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) {  #Named parameters
-        note "Policy path: $policies";
-	note "Zone path: $zones";
-        note "Verbose: $verbose" if $verbose > 0;
-	note "Dumping rules to $dump_format" if $dump_rules;
-
-	# Match files with "policy" extension
-	my @policy_files = dir($policies, test => /.*\.policy$/);
-	my $number_of_policies = @policy_files.elems;
-	note "Number of policy files found: $number_of_policies";
-
-
-	# Match files with "zone" extension
-	my @zone_files = dir($zones, test => /.*\.zone$/);
-	my $number_of_zones = @zone_files.elems;
-	note "Number of zones files found: $number_of_zones";
-
-	# Loop through all policy files, parse and append
-	my %FwcZones;
-	for @zone_files -> $file {
-	        my $zone_content =  try slurp($file);
-	        if ($!) {
-	             note "Unable to open and read file, $file, $!";
-	        }
-		%FwcZones.append: Zones::FwcGrammar.parse($zone_content, actions => Zones::FwcActions.new).made
-	}
-	dumpZones(%FwcZones);
-
-	# Loop through all policy files, parse and append
-	my (%FwcRules, %FwcAllZones);
-	for @policy_files -> $file {
-	        my $policy_content =  try slurp($file);
-	        if ($!) {
-	             note "Unable to open and read file,$file, $!";
-	        }
-
-		my %rules = Policies::FwcGrammar.parse($policy_content, actions=> Policies::FwcActions.new).made;
-	        %FwcRules.append: %rules<Rules>[0];
-		%FwcAllZones.append: %rules<AllZones>[0];
-	}
-	dumper(%FwcRules, $dump_format) if $dump_rules;
-
-	note "Number of zones: ", %FwcZones.elems;
-	note "Number of policies: ", %FwcAllZones.elems;
-
-	# Error checking
-	for keys %FwcAllZones -> $key {
-		if %FwcZones{$key}:exists {
-			#say "\t$key does exist";
-		} else {
-			 note "\t\"$key\" is not a defind zone";
-		}
-	}
-
-	for keys %FwcZones -> $key {
-		if %FwcAllZones{$key}:exists {
-			#say "\t$key does exist";
-		} else {
-			note "\t\"$key\" is defind but not used";
-		}
-	}
-}
