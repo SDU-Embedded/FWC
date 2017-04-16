@@ -11,7 +11,9 @@ method TOP($/) {
 method Header($/){
 	my %header = "Protocol" => $<Protocol>.made;
 
-	%header.push: $<GlobalOptions>.made;
+	if $<GlobalOptions>.made {
+		%header.push: $<GlobalOptions>.made;
+	}
 	$/.make: %header;
 }
 
