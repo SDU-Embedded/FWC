@@ -7,7 +7,6 @@ use lib "./lib";
 use Inline::Perl5;
 my $p5 = Inline::Perl5.new;
 $p5.use('NetAddr::IP');
-$p5.use('IO::Socket::IP');
 
 use Policies::FwcGrammar;
 use Policies::FwcActions;
@@ -92,7 +91,10 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 #			say "From: $from %FwcZones{$from}{'ip'}, To $to %FwcZones{$to}{'ip'}, Protocol: $protocol, Port: $port";
 		        my $ToIp = $p5.invoke('NetAddr::IP','new',%FwcZones{$to}{'ip'} ~ '/' ~ %FwcZones{$to}{'cidr'});
 
-			say "%FwcZones{$from}{'ip'} NAT to %FwcZones{$to}{'ip'}" unless $ToIp.contains($FromIp);
+			say "%FwcZones{$from}{'ip'} DNAT to %FwcZones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
+#			say "iptables -t nat -A POSTROUTING -o world -j MASQUERADE" unless $ToIp.contains($FromIp);
+			say "iptables -A FORWARD -s $FromIp -d $ToIp -p tcp --dport $port";
+			say "iptables -A FORWARD -d $FromIp -s $ToIp -p tcp --sport $port";
                 }
         }
 
