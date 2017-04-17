@@ -35,7 +35,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	my $number_of_zones = @zone_files.elems;
 	note "Number of zones files found: $number_of_zones";
 
-	# Loop through all policy files, parse and append
+	# Loop through all zone files, parse and append
 	my %FwcZones;
 	for @zone_files -> $file {
 	        my $zone_content =  try slurp($file);
@@ -81,7 +81,6 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	}
 
         for %FwcRules.kv -> $from, @rules {
-		#her
 	        my $FromIp = $p5.invoke('NetAddr::IP','new', %FwcZones{$from}{'ip'} ~ '/' ~ %FwcZones{$from}{'cidr'});
                 for @rules -> $rule {
                         my ($to, %options) = $rule.kv;
@@ -153,11 +152,11 @@ sub dumpZones(%FwcZones){
 	my @rows;
 	for %FwcZones.kv -> $zonename, $ip {
 		$ip{'cidr'} = '-' unless $ip{'cidr'};
-		@rows.push: ($zonename, $ip{'ip'}, $ip{'cidr'});
+		@rows.push: ($zonename, $ip{'interface'},$ip{'location'},$ip{'ip'}, $ip{'cidr'});
 	}
 
 
-	my @headers = ['Zone name','IP','CIDR'];
+	my @headers = ['Zone name','Interface','Location','IP','CIDR'];
 	my @table   = lol2table(@headers,@rows);
 
 	.note  for @table;
