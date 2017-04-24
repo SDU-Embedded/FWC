@@ -68,7 +68,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 		if %FwcZones{$key}:exists {
 			#say "\t$key does exist";
 		} else {
-			 note "\t\"$key\" is not a defind zone";
+			 note "\t\"$key\" is not a defined zone";
 		}
 	}
 
@@ -76,7 +76,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 		if %FwcAllZones{$key}:exists {
 			#say "\t$key does exist";
 		} else {
-			note "\t\"$key\" is defind but not used";
+			note "\t\"$key\" is defined but not used";
 		}
 	}
 
@@ -92,8 +92,13 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 
 			say "%FwcZones{$from}{'ip'} DNAT to %FwcZones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
 #			say "iptables -t nat -A POSTROUTING -o world -j MASQUERADE" unless $ToIp.contains($FromIp);
-			say "iptables -A FORWARD -s $FromIp -d $ToIp -p tcp --dport $port";
-			say "iptables -A FORWARD -d $FromIp -s $ToIp -p tcp --sport $port";
+			if %FwcZones{$to}{'islocal'} !~~ /true/ {
+				say "iptables -A FORWARD -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port";
+				say "iptables -A FORWARD -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i %FwcZones{$to}{'interface'} -p tcp --sport $port";
+			} else {
+				say "iptables -A INPUT -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port";
+				say "iptables -A OUTPUT -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i %FwcZones{$to}{'interface'} -p tcp --sport $port";
+			}
                 }
         }
 
@@ -152,11 +157,11 @@ sub dumpZones(%FwcZones){
 	my @rows;
 	for %FwcZones.kv -> $zonename, $ip {
 		$ip{'cidr'} = '-' unless $ip{'cidr'};
-		@rows.push: ($zonename, $ip{'interface'},$ip{'location'},$ip{'ip'}, $ip{'cidr'});
+		@rows.push: ($zonename, $ip{'interface'},$ip{'islocal'},$ip{'ip'}, $ip{'cidr'});
 	}
 
 
-	my @headers = ['Zone name','Interface','Location','IP','CIDR'];
+	my @headers = ['Zone name','Interface','IsLocal','IP','CIDR'];
 	my @table   = lol2table(@headers,@rows);
 
 	.note  for @table;

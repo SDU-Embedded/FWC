@@ -3,7 +3,7 @@ unit class Zones::FwcActions;
 method TOP ($/) {
         my %zones;
         for  $<zonedef> -> $/ {
-                %zones.append: $<zonename> => {'interface' =>  $<interface>, 'location' => $<location>,'ip' => $<ip>, 'cidr' => $<cidr>}
+                %zones.append: $<zonename> => {'interface' =>  $<interface>, 'islocal' => ($<islocal>.made ?? "true" !! "false"),'ip' => $<ip>, 'cidr' => $<cidr>}
         }
 
         $/.make: %zones;
@@ -27,7 +27,6 @@ method cidr($/) {
 method interface($/){
 	$/.make: $/;
 }
-method location:sym<local>($/){
-#	say "\t\tLocation: $/";
-	$/.make: "local";
+method islocal:sym<local>($/){
+	$/.make: "true";
 }

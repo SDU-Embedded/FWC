@@ -4,7 +4,7 @@ unit grammar Zones::FwcGrammar;
 
 token TOP { <zonedef>+ }
 
-token zonedef {<zonename>\{<interface>\}<space>is[<space><location>]?<space>at<space><ip>["/"<cidr>]? [<space>*]? }
+token zonedef {<zonename>\{<interface>\}<space>is[<space><islocal>]?<space>at<space><ip>["/"<cidr>]? [<space>*]? }
 token zonename {[\w]+}
 token space {\s+}
 token ip {[\d ** 1..3] ** 4 % '.'}
@@ -16,5 +16,5 @@ token interface {
 	<[\d\w:]>+
 }
 
-proto token location {*}
-      token location:sym<local>   { local }
+proto token islocal {*}
+      token islocal:sym<local>   { local }

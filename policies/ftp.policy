@@ -1,3 +1,0 @@
-Policy ftp{src=cool,e=102030}:
-	Internet   =>  Gateway{a=100,c=1337}
-	Zone1   =>  Internet{dport=100}
