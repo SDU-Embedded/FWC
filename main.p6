@@ -80,6 +80,11 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 		}
 	}
 
+
+	IptablesGeneratePolicies(%FwcZones, %FwcRules);
+}
+
+sub IptablesGeneratePoliciesStdout(%FwcZones, %FwcRules){
         for %FwcRules.kv -> $from, @rules {
 	        my $FromIp = $p5.invoke('NetAddr::IP','new', %FwcZones{$from}{'ip'} ~ '/' ~ %FwcZones{$from}{'cidr'});
                 for @rules -> $rule {
@@ -101,9 +106,50 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 			}
                 }
         }
-
 }
 
+
+
+sub IptablesGeneratePolicies(%FwcZones, %FwcRules){
+	my $fh = open "IptablesPolicies.sh", :w;
+	$fh.print("#!/bin/bash\n");
+
+	for %FwcRules.kv -> $from, @rules {
+                my $FromIp = $p5.invoke('NetAddr::IP','new', %FwcZones{$from}{'ip'} ~ '/' ~ %FwcZones{$from}{'cidr'});
+                for @rules -> $rule { 
+                        my ($to, %options) = $rule.kv;
+                        my $protocol = %options<Protocol>;
+
+                        my ($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
+#                       say "From: $from %FwcZones{$from}{'ip'}, To $to %FwcZones{$to}{'ip'}, Protocol: $protocol, Port: $port";
+                        my $ToIp = $p5.invoke('NetAddr::IP','new',%FwcZones{$to}{'ip'} ~ '/' ~ %FwcZones{$to}{'cidr'});
+
+                        say "%FwcZones{$from}{'ip'} DNAT to %FwcZones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
+#                       say "iptables -t nat -A POSTROUTING -o world -j MASQUERADE" unless $ToIp.contains($FromIp);
+                        if %FwcZones{$to}{'islocal'} !~~ /true/ {
+				$fh.say("# -----------------------REMOTE--------------------");
+				$fh.print("sudo iptables -N $from-$to\n");
+				$fh.print("sudo iptables -N $to-$from\n");
+				$fh.print("sudo iptables -A FORWARD -j $from-$to\n");
+				$fh.print("sudo iptables -A FORWARD -j $to-$from\n");
+				$fh.say("# -----------------------REMOTE END--------------------");
+#                                say "iptables -A FORWARD -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port";
+#                                say "iptables -A FORWARD -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i %FwcZones{$to}{'interface'} -p tcp --sport $port";
+                        } else {
+				$fh.say("# -----------------------LOCAL--------------------");
+				$fh.print("sudo iptables -N $from-$to\n");
+				$fh.print("sudo iptables -N $to-$from\n");
+				$fh.print("sudo iptables -A INPUT -j $from-$to\n");
+				$fh.print("sudo iptables -A OUTPUT -j $to-$from\n");
+				$fh.say("# -----------------------LOCAL END--------------------");
+#                                say "iptables -A INPUT -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port";
+#                                say "iptables -A OUTPUT -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i %FwcZones{$to}{'interface'} -p tcp --sport $port";
+                        }
+                }
+        }
+
+	$fh.close;
+}
 
 sub dumper(%data, $format = "table"){
 	my @rows;
