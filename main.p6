@@ -4,21 +4,16 @@ use v6.c;
 use lib "./lib";
 
 # Perl5 compatibility
-use Inline::Perl5;
-my $p5 = Inline::Perl5.new;
-$p5.use('NetAddr::IP');
+use Inline::Perl5; my $p5 = Inline::Perl5.new; $p5.use('NetAddr::IP');
 
-use Policies::FwcGrammar;
-use Policies::FwcActions;
+use Policies::FwcGrammar; use Policies::FwcActions;
 
-use Zones::FwcActions;
-use Zones::FwcGrammar;
+use Zones::FwcActions; use Zones::FwcGrammar;
 
-use MONKEY-SEE-NO-EVAL;
-use Text::Table::Simple;
+use MONKEY-SEE-NO-EVAL; use Text::Table::Simple;
 
 
-multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) {  #Named parameters
+multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) { #Named parameters
         note "Policy path: $policies";
 	note "Zone path: $zones";
         note "Verbose: $verbose" if $verbose > 0;
@@ -38,7 +33,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	# Loop through all zone files, parse and append
 	my %FwcZones;
 	for @zone_files -> $file {
-	        my $zone_content =  try slurp($file);
+	        my $zone_content = try slurp($file);
 	        if ($!) {
 	             note "Unable to open and read file, $file, $!";
 	        }
@@ -49,7 +44,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	# Loop through all policy files, parse and append
 	my (%FwcRules, %FwcAllZones);
 	for @policy_files -> $file {
-	        my $policy_content =  try slurp($file);
+	        my $policy_content = try slurp($file);
 	        if ($!) {
 	             note "Unable to open and read file,$file, $!";
 	        }
@@ -116,7 +111,7 @@ sub IptablesGeneratePolicies(%FwcZones, %FwcRules){
 
 	for %FwcRules.kv -> $from, @rules {
                 my $FromIp = $p5.invoke('NetAddr::IP','new', %FwcZones{$from}{'ip'} ~ '/' ~ %FwcZones{$from}{'cidr'});
-                for @rules -> $rule { 
+                for @rules -> $rule {
                         my ($to, %options) = $rule.kv;
                         my $protocol = %options<Protocol>;
 
@@ -133,8 +128,8 @@ sub IptablesGeneratePolicies(%FwcZones, %FwcRules){
 				$fh.print("sudo iptables -A FORWARD -j $from-$to\n");
 				$fh.print("sudo iptables -A FORWARD -j $to-$from\n");
 				$fh.say("# -----------------------REMOTE END--------------------");
-#                                say "iptables -A FORWARD -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port";
-#                                say "iptables -A FORWARD -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i %FwcZones{$to}{'interface'} -p tcp --sport $port";
+#                                say "iptables -A FORWARD -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port"; say "iptables -A FORWARD -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i 
+#                                %FwcZones{$to}{'interface'} -p tcp --sport $port";
                         } else {
 				$fh.say("# -----------------------LOCAL--------------------");
 				$fh.print("sudo iptables -N $from-$to\n");
@@ -142,8 +137,8 @@ sub IptablesGeneratePolicies(%FwcZones, %FwcRules){
 				$fh.print("sudo iptables -A INPUT -j $from-$to\n");
 				$fh.print("sudo iptables -A OUTPUT -j $to-$from\n");
 				$fh.say("# -----------------------LOCAL END--------------------");
-#                                say "iptables -A INPUT -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port";
-#                                say "iptables -A OUTPUT -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i %FwcZones{$to}{'interface'} -p tcp --sport $port";
+#                                say "iptables -A INPUT -s $FromIp -i %FwcZones{$from}{'interface'} -d $ToIp -o %FwcZones{$to}{'interface'} -p tcp --dport $port"; say "iptables -A OUTPUT -d $FromIp -o %FwcZones{$from}{'interface'} -s $ToIp -i 
+#                                %FwcZones{$to}{'interface'} -p tcp --sport $port";
                         }
                 }
         }
@@ -165,10 +160,10 @@ sub dumper(%data, $format = "table"){
         }
 
 	my @headers = ['Protocol','From','To','Options'];
-	my @table   = lol2table(@headers,@rows);
+	my @table = lol2table(@headers,@rows);
 
 	if $format eq "table" {
-		.note  for @table;
+		.note for @table;
 	}
 
 	if $format eq "json" {
@@ -208,8 +203,8 @@ sub dumpZones(%FwcZones){
 
 
 	my @headers = ['Zone name','Interface','IsLocal','IP','CIDR'];
-	my @table   = lol2table(@headers,@rows);
+	my @table = lol2table(@headers,@rows);
 
-	.note  for @table;
+	.note for @table;
 }
 
