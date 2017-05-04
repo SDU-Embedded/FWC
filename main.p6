@@ -111,8 +111,8 @@ class IptablesGenerator {
 				%UniqChainNames{"{$alias}-s2c"} = 1;
 				%UniqChainNames{"{$alias}-c2s"} = 1;
 
-				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$from}-{$to} -j {$alias}-c2s\\n\"\)" );
-				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$to}-{$from} -j {$alias}-s2c\\n\");" );
+				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -o %!Zones{$to}{'interface'} -d $ToIp -A {$from}-{$to} -j {$alias}-c2s\\n\"\)" );
+				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -i %!Zones{$to}{'interface'} -s $ToIp -A {$to}-{$from} -j {$alias}-s2c\\n\");" );
 			}
 		 }
 
