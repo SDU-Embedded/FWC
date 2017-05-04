@@ -48,6 +48,50 @@ class IptablesGenerator {
 		$!FileHandle.print("#-------- End create zones ------\n\n");
 	}
 
+	submethod GenerateChains {
+		my %ToBeCreatedNewLocal;
+		my %ToBeCreatedAddLocal;
+
+		my %ToBeCreatedNewRemote;
+		my %ToBeCreatedAddRemote;
+
+		for %!Rules.kv -> $from, @rules {
+                	my $FromIp = $p5.invoke('NetAddr::IP','new', %!Zones{$from}{'ip'} ~ '/' ~ %!Zones{$from}{'cidr'});
+                	for @rules -> $rule {
+                	        my ($to, %options) = $rule.kv;
+                	        my $protocol = %options<Protocol>;
+
+                	        my ($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
+                	        my $ToIp = $p5.invoke('NetAddr::IP','new',%!Zones{$to}{'ip'} ~ '/' ~ %!Zones{$to}{'cidr'});
+
+#	         	        say "%FwcZones{$from}{'ip'} DNAT to %!Zones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
+                	        if %!Zones{$to}{'islocal'} !~~ /true/ {
+                	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -j {$from}-{$to}\\n\"\)"} = 1;
+                	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -j {$to}-{$from}\\n\"\)"} = 1;
+
+                	        } else {
+                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -j {$from}-{$to}\\n\"\)"} = 1;
+                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -j {$to}-{$from}\\n\"\)"} = 1;
+                	        }
+                	}
+        	}
+
+
+		$!FileHandle.print("#-------- Add zone-chains(Remote) to chains ------\n");
+		for %ToBeCreatedAddRemote.keys -> $line {
+			EVAL($line);
+		}
+		$!FileHandle.print("#-------- End add zone-chains(Remote) to chains ------\n\n");
+
+
+
+		$!FileHandle.print("#-------- Add zone-chains(Local) to chains ------\n");
+		for %ToBeCreatedAddLocal.keys -> $line {
+			EVAL($line);
+		}
+		$!FileHandle.print("#-------- End add zone-chains(Local) to chains ------\n\n");
+
+	}
 	submethod GenerateClientServerProtoChains{
 		my @ToBeCreated;
 		my %UniqChainNames;
@@ -153,16 +197,14 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 
 	my $iptablesGenerator = IptablesGenerator.new(Zones => %FwcZones, Rules => %FwcRules, Filename => "IptablesRun.sh");
 	$iptablesGenerator.GenerateUniqueChainNames();
+	$iptablesGenerator.GenerateChains();
 	$iptablesGenerator.GenerateClientServerProtoChains();
 }
 
 
-
-
-
-
 sub IptablesGeneratePolicies(%FwcZones, %FwcRules){
 	my $fh = open "IptablesPolicies.sh", :w;
+
 
 	for %FwcRules.kv -> $from, @rules {
                 my $FromIp = $p5.invoke('NetAddr::IP','new', %FwcZones{$from}{'ip'} ~ '/' ~ %FwcZones{$from}{'cidr'});
