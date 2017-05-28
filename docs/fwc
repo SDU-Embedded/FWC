@@ -1,0 +1,42 @@
+.\" Manpage for fwc.
+.\" Contact mathias@mneerup.dk to correct errors or typos.
+.TH man 8 "28 May 2017" "0.1" "fwc man page"
+.\" Man pages written by Mathias Neerup (manee12@student.sdu.dk) (may 2017)
+.\"			THE BEER-WARE LICENSE (Revision 42):
+.\"			As long as you retain this notice you
+.\"			can do whatever you want with this stuff. If we meet some day, and you think
+.\"			this stuff is worth it, you can buy me a beer in return Mathias Neerup
+.\"
+.\"
+.SH NAME
+fwc \- Compiler for compiling highlevel firewall descriptions into iptable rules.
+.SH SYNOPSIS
+fwc \-\-policy SOURCE \-\-zones SOURCE [\fIoptions...\fP]
+.SH DESCRIPTION
+FWC is a firewall compiler that aims to make  writing firewall rules easier. ...
+.SH OPTIONS
+.TP
+\fB\-\-dump_rules\fP 
+This options dumps all rules in a table to stdout.
+.SH "EXAMPLES"
+.PP
+\fBExample\ \&1.\ \&Allowing http from "homenet" to "internet"\fR
+.RS 4
+Policy ftp:
+        Homenet=>World
+.RE
+
+\fBExample\ \&2.\ \&Allowing http from "homenet" to "internet" with custom port - in this case 1234\fR
+.RS 4
+Policy http{port=1234}:
+        Homenet=>World
+.RE
+.SH SEE ALSO
+useradd(8), passwd(5), nuseradd.debian(8) 
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Mathias Neerup(mathias@mneerup.dk) wrote the parser and the overall struture of the fwc.
+.PP
+John Hallam(john@hallam.dk) supervised the project and wrote the backend for reading and parsing protocols, targets etc.
+
