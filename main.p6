@@ -92,6 +92,20 @@ class IptablesGenerator {
 		$!FileHandle.print("#-------- End add zone-chains(Local) to chains ------\n\n");
 
 	}
+	submethod GenerateSpoofRules {
+		my $file = "template/spoof.tmpl";
+		my $spoofTemplate = try slurp($file);
+                if ($!) {
+                     note "Unable to open and read file, $file, $!";
+                }
+
+		$spoofTemplate ~~ s:g/\$IF\$/foo-interface/;
+		$spoofTemplate ~~ s:g/\$SOURCE_IP\$/cool-ip2-cool/;
+
+		$!FileHandle.print("#------------ Spoof - only allow certain ips to send and receive packets\n");
+		$!FileHandle.print($spoofTemplate);
+		$!FileHandle.print("#------------ End spoof - only allow certain ips to send and receive packets\n");
+	}
 	submethod GenerateClientServerProtoChains{
 		my @ToBeCreated;
 		my %UniqChainNames;
@@ -132,22 +146,22 @@ class IptablesGenerator {
 }
 
 
-multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumper = False, Bool :$dump_rules = False, Str :$dump_format = "table" ) { #Named parameters
-        note "Policy path: $policies";
-	note "Zone path: $zones";
+multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dump_rules = False,Bool :$dump_zones = False,Str :$dump_format = "table" ) { #Named parameters
+        note "Policy path: $policies" if $verbose > 1;
+	note "Zone path: $zones" if $verbose > 1;
         note "Verbose: $verbose" if $verbose > 0;
-	note "Dumping rules to $dump_format" if $dump_rules;
+	note "Dumping rules to $dump_format" if $dump_rules or $dump_zones;
 
 	# Match files with "policy" extension
 	my @policy_files = dir($policies, test => /.*\.policy$/);
 	my $number_of_policies = @policy_files.elems;
-	note "Number of policy files found: $number_of_policies";
+	note "Number of policy files found: $number_of_policies" if $verbose > 0;
 
 
 	# Match files with "zone" extension
 	my @zone_files = dir($zones, test => /.*\.zone$/);
 	my $number_of_zones = @zone_files.elems;
-	note "Number of zones files found: $number_of_zones";
+	note "Number of zones files found: $number_of_zones" if $verbose > 0;
 
 	# Loop through all zone files, parse and append
 	my %FwcZones;
@@ -158,7 +172,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	        }
 		%FwcZones.append: Zones::FwcGrammar.parse($zone_content, actions => Zones::FwcActions.new).made
 	}
-	dumpZones(%FwcZones);
+	dumpZones(%FwcZones, $dump_format) if $dump_zones;
 
 	# Loop through all policy files, parse and append
 	my (%FwcRules, %FwcAllZones);
@@ -174,8 +188,8 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	}
 	dumper(%FwcRules, $dump_format) if $dump_rules;
 
-	note "Number of zones: ", %FwcZones.elems;
-	note "Number of policies: ", %FwcAllZones.elems;
+	note "Number of zones: ", %FwcZones.elems if $verbose > 0;
+	note "Number of policies: ", %FwcAllZones.elems if $verbose > 0;
 
 	# Error checking
 	for keys %FwcAllZones -> $key {
@@ -199,6 +213,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dumpe
 	$iptablesGenerator.GenerateUniqueChainNames();
 	$iptablesGenerator.GenerateChains();
 	$iptablesGenerator.GenerateClientServerProtoChains();
+	$iptablesGenerator.GenerateSpoofRules();
 }
 
 
@@ -251,9 +266,9 @@ sub dumper(%data, $format = "table"){
         }
 
 	my @headers = ['Protocol','From','To','Options'];
-	my @table = lol2table(@headers,@rows);
 
 	if $format eq "table" {
+		my @table = lol2table(@headers,@rows);
 		.note for @table;
 	}
 
@@ -285,7 +300,7 @@ sub dumper(%data, $format = "table"){
 }
 
 
-sub dumpZones(%FwcZones){
+sub dumpZones(%FwcZones, $format = "table"){
 	my @rows;
 	for %FwcZones.kv -> $zonename, $ip {
 		$ip{'cidr'} = '-' unless $ip{'cidr'};
@@ -294,8 +309,28 @@ sub dumpZones(%FwcZones){
 
 
 	my @headers = ['Zone name','Interface','IsLocal','IP','CIDR'];
-	my @table = lol2table(@headers,@rows);
 
-	.note for @table;
+        if $format eq "table" {
+		my @table = lol2table(@headers,@rows);
+		.note for @table;
+	}
+
+	
+        if $format eq "json" {
+		say('{"FWC":[');
+		my $output;
+		for @rows -> $row {
+			$output ~= '{';
+			my Int $i = 0;
+			for @headers -> $head {
+				$output~="\"$head\":\"$row[$i++].subst(/\"/, "'",:g)\",";
+			}
+			$output =chop($output);
+			$output ~= '},';
+		}
+		$output = chop $output;
+		say("$output]}");
+
+	}	
 }
 
