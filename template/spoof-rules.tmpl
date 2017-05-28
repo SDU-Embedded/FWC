@@ -1,0 +1,17 @@
+iptables -t mangle -A SpoofedSrc -s 0.0.0.0/8 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 39.0.0.0/8 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 102.0.0.0/7 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 104.0.0.0/8 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 106.0.0.0/8 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 127.0.0.0/8 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 169.254.0.0/16 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 172.16.0.0/12 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 179.0.0.0/8 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 185.0.0.0/8 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 192.0.0.0/24 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 192.0.2.0/24 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 192.168.0.0/16 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 198.18.0.0/15 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 198.51.100.0/24 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 203.0.113.0/24 -j LOGSpoof
+iptables -t mangle -A SpoofedSrc -s 224.0.0.0/3 -j LOGSpoof
