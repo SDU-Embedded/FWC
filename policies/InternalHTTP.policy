@@ -1,2 +1,2 @@
 Policy http:
-	Internal=>World
+	World=>Internal
