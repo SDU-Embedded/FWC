@@ -1,3 +1,3 @@
 Policy http:
 	Guestnet=>World
-	Sodanet=>World
+	Homenet=>World

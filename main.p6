@@ -7,6 +7,7 @@ use Inline::Perl5;
 
 my $p5 = Inline::Perl5.new; 
 $p5.use('NetAddr::IP');
+$p5.use('IPTables');
 
 use Policies::FwcGrammar; 
 use Policies::FwcActions;
@@ -83,6 +84,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dump_
 	$iptablesGenerator.GenerateUniqueChainNames();
 	$iptablesGenerator.GenerateChains();
 	$iptablesGenerator.GenerateClientServerProtoChains();
+	$iptablesGenerator.GenerateRules();
 	$iptablesGenerator.GenerateSpoofRules();
 }
 
