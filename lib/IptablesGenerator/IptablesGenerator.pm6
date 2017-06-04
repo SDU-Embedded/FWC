@@ -136,13 +136,16 @@ class IptablesGenerator {
                 	        my $ToIp = $p5.invoke('NetAddr::IP','new',%!Zones{$to}{'ip'} ~ '/' ~ %!Zones{$to}{'cidr'});
 
 #	         	        say "%FwcZones{$from}{'ip'} DNAT to %!Zones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
-                	        if %!Zones{$to}{'islocal'} !~~ /true/ {
+				print "Is local: ", %!Zones{$from}{'islocal'},"\n";
+                	        if %!Zones{$to}{'islocal'} !~~ /true/ and %!Zones{$from}{'islocal'} !~~ /true/ {
                 	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -i %!Zones{$from}{'interface'} -s $FromIp -o %!Zones{$to}{'interface'} -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
                 	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -i %!Zones{$to}{'interface'} -s $ToIp -o %!Zones{$from}{'interface'} -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
 
                 	        } else {
-                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
-                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp -j {$to}-{$from}\\n\"\)"} = 1;
+					print "From: ", $from,"\n";
+					print "TO: ", $to,"\n";
+                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
+                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
                 	        }
                 	}
         	}
@@ -196,7 +199,7 @@ class IptablesGenerator {
 				%UniqChainNames{"{$alias}-c2s"} = $protocol;
 
 				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$from}-{$to} -p tcp --dport $port -j {$alias}-c2s\\n\"\)" );
-				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$to}-{$from} -p tcå --sport $port -j {$alias}-s2c\\n\");" );
+				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$to}-{$from} -p tcp --sport $port -j {$alias}-s2c\\n\");" );
 			}
 		 }
 

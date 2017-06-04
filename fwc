@@ -89,41 +89,6 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dump_
 }
 
 
-sub IptablesGeneratePolicies(%FwcZones, %FwcRules){
-	my $fh = open "IptablesPolicies.sh", :w;
-
-
-	for %FwcRules.kv -> $from, @rules {
-                my $FromIp = $p5.invoke('NetAddr::IP','new', %FwcZones{$from}{'ip'} ~ '/' ~ %FwcZones{$from}{'cidr'});
-                for @rules -> $rule {
-                        my ($to, %options) = $rule.kv;
-                        my $protocol = %options<Protocol>;
-
-                        my ($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
-                        my $ToIp = $p5.invoke('NetAddr::IP','new',%FwcZones{$to}{'ip'} ~ '/' ~ %FwcZones{$to}{'cidr'});
-
-                        say "%FwcZones{$from}{'ip'} DNAT to %FwcZones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
-                        if %FwcZones{$to}{'islocal'} !~~ /true/ {
-				$fh.say("# -----------------------REMOTE--------------------");
-				$fh.print("sudo iptables -N {$from}In-{$to}Out\n");
-				$fh.print("sudo iptables -N {$to}In-{$from}Out\n");
-				$fh.print("sudo iptables -A FORWARD -j {$from}In-{$to}Out\n");
-				$fh.print("sudo iptables -A FORWARD -j {$to}In-{$from}Out\n");
-				$fh.say("# -----------------------REMOTE END--------------------");
-                        } else {
-				$fh.say("# -----------------------LOCAL--------------------");
-				$fh.print("sudo iptables -N {$from}In-{$to}Out\n");
-				$fh.print("sudo iptables -N {$to}In-{$from}Out\n");
-				$fh.print("sudo iptables -A INPUT -j {$from}In-{$to}Out\n");
-				$fh.print("sudo iptables -A OUTPUT -j {$to}In-{$from}Out\n");
-				$fh.say("# -----------------------LOCAL END--------------------");
-                        }
-                }
-        }
-
-	$fh.close;
-}
-
 sub dumper(%data, $format = "table"){
 	my @rows;
         for %data.kv -> $from, @rules {
