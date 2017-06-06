@@ -41,6 +41,7 @@ class IptablesGenerator {
 	has %!Rules;  
 
 	has $!FileHandle;
+	has %!UniqProtocols;
 
 	submethod BUILD(:%!Zones, :%!Rules, :$Filename = "Iptables.sh") {
 		$!FileHandle = open $Filename, :w;	
@@ -51,31 +52,26 @@ class IptablesGenerator {
 
 	submethod GenerateRules {
 		my @rules_to_file;
-		my %UniqProtocols;
+#		my %UniqProtocols;
 		for %!Rules.kv -> $from, @rules {
                 	my $FromIp = $p5.invoke('NetAddr::IP','new', %!Zones{$from}{'ip'} ~ '/' ~ %!Zones{$from}{'cidr'});
                 	for @rules -> $rule {
                 	        my ($to, %options) = $rule.kv;
                 	        my $protocol = %options<Protocol>;
 
-                	        my ($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
-                	        my $ToIp = $p5.invoke('NetAddr::IP','new',%!Zones{$to}{'ip'} ~ '/' ~ %!Zones{$to}{'cidr'});
-
-				say "Create for proto: $protocol from $FromIp to $ToIp";
-				%UniqProtocols{$protocol} = "alias" => $alias, "options" => %options, "port" => $port;
+				%!UniqProtocols{$protocol} = 1;
 			}
 		}
 
-		say %UniqProtocols;
-		for %UniqProtocols.kv -> $protocol,@values_tmp {
-			my %values = @values_tmp; # To hash from list
-#
-#			print "port: ", $values{"port"}
+
+		#say %UniqProtocols.gist;
+		for %!UniqProtocols.keys -> $protocol {
+
 			my @content = load_protocol($protocol);
 			if @content.elems > 0 {
-				my $alias = %values{"alias"};
-				my $port = %values{"port"};
-				say "Loaded protocol: ", @content.elems,"\n";
+				my ($port,$alias) = self.GetPortFromServiceName($protocol);
+				print "Loaded protocol: ", @content.elems,"\n";
+				print join("\n", @content),"\n";
 				my @parsed_objs = map { $p5.invoke("IPTables::Rule","parser",split(' ', $_ ))}, @content;
 				for @parsed_objs -> $obj {
 					my $test;
@@ -88,16 +84,58 @@ class IptablesGenerator {
 					} else {
 						print "SPORT or DPORT not found - I got no clue where this rule should be going...";
 					}
+
+					my @test = @($obj.match.matches);
+					print "transport protocol: ", @test[2].match(), "\n";
+
+
+					%!UniqProtocols{$protocol} = TransportProto => @test[2].match();
 				}
 			}
 		}
 
+
+		self.GenerateClientServerProtoChains();
 
 		$!FileHandle.print("#---------- Create rules --------#\n");
 		for @rules_to_file -> $elm {
 			$!FileHandle.print($elm ~"\n");
 		}
 		$!FileHandle.say("#---------- End create rules --------#");
+	}
+
+	method GenerateClientServerProtoChains{
+		my @ToBeCreated;
+		my %UniqChainNames;
+
+		for %!Rules.kv -> $from, @rules {
+                	for @rules -> $rule {
+                	        my ($to, %options) = $rule.kv;
+                	        my $protocol = %options<Protocol>;
+
+				my ($port,$alias, $transportProto) = self.GetPortFromServiceName($protocol);
+
+				%UniqChainNames{"{$alias}-s2c"} = $protocol;
+				%UniqChainNames{"{$alias}-c2s"} = $protocol;
+
+				my $TransportProtocol = %!UniqProtocols{$protocol}{'TransportProto'};
+				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$from}-{$to} -p $TransportProtocol --dport $port -j {$alias}-c2s\\n\"\)" );
+				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$to}-{$from} -p $TransportProtocol --sport $port -j {$alias}-s2c\\n\");" );
+			}
+		 }
+
+		$!FileHandle.print("#-------- Create proto-client/server chains ------\n");
+		for %UniqChainNames.keys -> $chainNames {
+			$!FileHandle.print("iptables -N $chainNames\n");
+		}
+
+		$!FileHandle.print("#-------- End create proto-client/server chains ------\n\n");
+
+		$!FileHandle.print("#-------- Append protos to proto-client/server chains ------\n");
+		for @ToBeCreated -> $rule {
+			 EVAL($rule);
+		}
+		$!FileHandle.print("#-------- End append protos to proto-client/server chains ------\n");
 	}
 
 	submethod GenerateUniqueChainNames {
@@ -133,19 +171,14 @@ class IptablesGenerator {
                 	        my ($to, %options) = $rule.kv;
                 	        my $protocol = %options<Protocol>;
 
-                	        my ($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
+                                my ($port,$alias) = self.GetPortFromServiceName($protocol);
                 	        my $ToIp = $p5.invoke('NetAddr::IP','new',%!Zones{$to}{'ip'} ~ '/' ~ %!Zones{$to}{'cidr'});
 
-#	         	        say "%FwcZones{$from}{'ip'} DNAT to %!Zones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
-#				print "Is local: ", %!Zones{$from}{'islocal'},"\n";
                 	        if %!Zones{$to}{'islocal'} !~~ /true/ and %!Zones{$from}{'islocal'} !~~ /true/ {
                 	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -i %!Zones{$from}{'interface'} -s $FromIp -o %!Zones{$to}{'interface'} -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
                 	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -i %!Zones{$to}{'interface'} -s $ToIp -o %!Zones{$from}{'interface'} -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
 
                 	        } else {
-					print "From: ", $from,"\n";
-					print "TO: ", $to,"\n";
-					# Internal always needs to be at format: local-remote, remote-local - to/from does not matter
 
 					if %!Zones{$from}{'islocal'} ~~ /true/ {
 	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -s $ToIp -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
@@ -157,14 +190,6 @@ class IptablesGenerator {
 	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
 						print "$from -> $to\n";
 					}
-
-#					print "local to: %!Zones{$to}{'islocal'}\n";
-#					print "local from: %!Zones{$from}{'islocal'}\n";
-#					my $zone1 = (%!Zones{$from}{'islocal'} ~~ /true/) ?? $from !! $to;
-#					my $zone2 = (%!Zones{$to}{'islocal'} ~~ /true/) ?? $from !! $to;
-#					print "{$zone1}-{$zone2}\n";
-#                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -s $FromIp -d $ToIp -j {$zone2}-{$zone1}\\n\"\)"} = 1;
-#                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp  -d $ToIp -j {$zone1}-{$zone2}\\n\"\)"} = 1;
                 	        }
                 	}
         	}
@@ -199,61 +224,13 @@ class IptablesGenerator {
 		$!FileHandle.print($spoofTemplate);
 		$!FileHandle.print("#------------ End spoof - only allow certain ips to send and receive packets\n");
 	}
-	submethod GenerateClientServerProtoChains{
-		my @ToBeCreated;
-		my %UniqChainNames;
 
-		for %!Rules.kv -> $from, @rules {
-                	my $FromIp = $p5.invoke('NetAddr::IP','new', %!Zones{$from}{'ip'} ~ '/' ~ %!Zones{$from}{'cidr'});
-                	for @rules -> $rule {
-                	        my ($to, %options) = $rule.kv;
-                	        my $protocol = %options<Protocol>;
+	method GetPortFromServiceName($protocol){
+		my ($name, $alias, $port, $proto) = ("",$protocol,"","");
+		($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
 
-	                        my ($name, $alias, $port, $proto) = $p5.call("CORE::getservbyname", $protocol, 'tcp');
-	                        my $ToIp = $p5.invoke('NetAddr::IP','new',%!Zones{$to}{'ip'} ~ '/' ~ %!Zones{$to}{'cidr'});
-
-				$alias = $protocol if $alias eq 0; # some alias doesn't exist, just use name given in policy-file
-
-				%UniqChainNames{"{$alias}-s2c"} = $protocol;
-				%UniqChainNames{"{$alias}-c2s"} = $protocol;
-
-				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$from}-{$to} -p tcp --dport $port -j {$alias}-c2s\\n\"\)" );
-				@ToBeCreated.append( "\$!FileHandle.print\(\"iptables -A {$to}-{$from} -p tcp --sport $port -j {$alias}-s2c\\n\");" );
-			}
-		 }
-
-		$!FileHandle.print("#-------- Create proto-client/server chains ------\n");
-		for %UniqChainNames.keys -> $chainNames {
-			$!FileHandle.print("iptables -N $chainNames\n");
-		}
-
-		$!FileHandle.print("#-------- End create proto-client/server chains ------\n\n");
-
-		$!FileHandle.print("#-------- Append protos to proto-client/server chains ------\n");
-		for @ToBeCreated -> $rule {
-			 EVAL($rule);
-		}
-		$!FileHandle.print("#-------- End append protos to proto-client/server chains ------\n");
-
-
-
-#		for %UniqChainNames.kv -> $chainNames,$protocol {
-#			my @content = load_protocol($protocol);
-#			if @content.elems > 0 {
-#	                	say "Loaded protocol: ", @content.elems,"\n";
-#				my @parsed_objs = map { $p5.invoke("IPTables::Rule","parser",split(' ', $_ ))}, @content;
-#				for @parsed_objs -> $obj {
-#	                        	my $test = $obj.clone1(CHAIN=> "{$alias}-c2s");
-#	                                @rules_to_file.push: $test.argvec(1);
-#	                        }
-#	                }
-#		}
-	
-#                $!FileHandle.print("#---------- Create rules --------#\n");
-#                for @rules_to_file -> $elm {
-#                        $!FileHandle.print($elm ~"\n");
-#                }
-#                $!FileHandle.say("#---------- End create rules --------#");
-
+		$alias = $protocol if $alias eq 0; # some alias doesn't exist, just use name given in policy-file
+		return ($port, $alias);
 	}
+
 }

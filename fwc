@@ -83,8 +83,8 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dump_
 	my $iptablesGenerator = IptablesGenerator.new(Zones => %FwcZones, Rules => %FwcRules, Filename => "IptablesRun.sh");
 	$iptablesGenerator.GenerateUniqueChainNames();
 	$iptablesGenerator.GenerateChains();
-	$iptablesGenerator.GenerateClientServerProtoChains();
 	$iptablesGenerator.GenerateRules();
+#	$iptablesGenerator.GenerateClientServerProtoChains();
 #	$iptablesGenerator.GenerateSpoofRules();
 }
 
