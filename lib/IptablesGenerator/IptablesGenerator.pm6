@@ -137,7 +137,7 @@ class IptablesGenerator {
                 	        my $ToIp = $p5.invoke('NetAddr::IP','new',%!Zones{$to}{'ip'} ~ '/' ~ %!Zones{$to}{'cidr'});
 
 #	         	        say "%FwcZones{$from}{'ip'} DNAT to %!Zones{$to}{'ip'}, port $port" unless $ToIp.contains($FromIp);
-				print "Is local: ", %!Zones{$from}{'islocal'},"\n";
+#				print "Is local: ", %!Zones{$from}{'islocal'},"\n";
                 	        if %!Zones{$to}{'islocal'} !~~ /true/ and %!Zones{$from}{'islocal'} !~~ /true/ {
                 	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -i %!Zones{$from}{'interface'} -s $FromIp -o %!Zones{$to}{'interface'} -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
                 	                %ToBeCreatedAddRemote{"\$!FileHandle.print\(\"iptables -A FORWARD -i %!Zones{$to}{'interface'} -s $ToIp -o %!Zones{$from}{'interface'} -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
@@ -147,13 +147,24 @@ class IptablesGenerator {
 					print "TO: ", $to,"\n";
 					# Internal always needs to be at format: local-remote, remote-local - to/from does not matter
 
-					print "local to: %!Zones{$to}{'islocal'}\n";
-					print "local from: %!Zones{$from}{'islocal'}\n";
-					my $zone1 = (%!Zones{$from}{'islocal'} ~~ /true/) ?? $from !! $to;
-					my $zone2 = (%!Zones{$to}{'islocal'} ~~ /true/) ?? $from !! $to;
-					print "{$zone1}-{$zone2}\n";
-                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -d $FromIp -j {$zone2}-{$zone1}\\n\"\)"} = 1;
-                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp -j {$zone1}-{$zone2}\\n\"\)"} = 1;
+					if %!Zones{$from}{'islocal'} ~~ /true/ {
+	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -s $ToIp -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
+	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$from}{'interface'} -s $FromIp -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
+						print "$to -> $from\n";
+					}
+					if %!Zones{$to}{'islocal'} ~~ /true/ {
+	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$from}{'interface'} -s $FromIp -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
+	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
+						print "$from -> $to\n";
+					}
+
+#					print "local to: %!Zones{$to}{'islocal'}\n";
+#					print "local from: %!Zones{$from}{'islocal'}\n";
+#					my $zone1 = (%!Zones{$from}{'islocal'} ~~ /true/) ?? $from !! $to;
+#					my $zone2 = (%!Zones{$to}{'islocal'} ~~ /true/) ?? $from !! $to;
+#					print "{$zone1}-{$zone2}\n";
+#                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -s $FromIp -d $ToIp -j {$zone2}-{$zone1}\\n\"\)"} = 1;
+#                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp  -d $ToIp -j {$zone1}-{$zone2}\\n\"\)"} = 1;
                 	        }
                 	}
         	}

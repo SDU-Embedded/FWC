@@ -1,3 +1,0 @@
-Policy http:
-	Guestnet=>World
-	Homenet=>World
