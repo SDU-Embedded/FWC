@@ -17,7 +17,7 @@ sub load_protocol($protocol){
 
 	if not %protocol_definitions{$protocol}:exists {
 		my $proto_file = "protos/" ~ $protocol ~ ".proto";
-		say "Proto to load: ", $proto_file;
+#		say "Proto to load: ", $proto_file;
 		if $proto_file.IO ~~ :e {
 	        	my @proto = lines $proto_file.IO; # Slurp!
 
@@ -71,29 +71,26 @@ class IptablesGenerator {
 
 		for %!UniqProtocols.keys -> $protocol {
 
-			print $protocol,"\n";
 			my @content = load_protocol($protocol);
 			if @content.elems > 0 {
 				my ($port,$alias) = self.GetPortFromServiceName($protocol);
-				print "Loaded protocol: ", @content.elems,"\n";
+#				print "Loaded protocol: ", @content.elems,"\n";
 				my @parsed_objs = map { $p5.invoke("IPTables::Rule","parser",split(' ', $_ ))}, @content;
 				for @parsed_objs -> $obj {
 					my $test;
 					if "SPORT" eq any($obj.vars()) {
-						print "DEBUG: ", $obj.argvec(1),"\n";
+#						print "DEBUG: ", $obj.argvec(1),"\n";
 						$test = $obj.clone1(CHAIN=> "{$alias}-s2c", SPORT => $port);
-
 	                                        @rules_to_file.push: $test.argvec(1);
 					} elsif ( "DPORT" eq any( $obj.vars() ) ) {
 						$test = $obj.clone1(CHAIN=> "{$alias}-c2s", DPORT => $port);
-
 	                                        @rules_to_file.push: $test.argvec(1);
 					} else {
 						print "SPORT or DPORT not found - I got no clue where this rule should be going...";
 					}
 
 					my @test = @($obj.match.matches);
-					print "transport protocol: ", @test[2].match(), "\n";
+#					print "transport protocol: ", @test[2].match(), "\n";
 
 
 					%!UniqProtocols{$protocol} = TransportProto => @test[2].match();
@@ -105,7 +102,7 @@ class IptablesGenerator {
 		self.GenerateClientServerProtoChains();
 
 		$!FileHandle.print("#---------- Create rules --------#\n");
-		print join("\n",@rules_to_file),"\n";
+#		print join("\n",@rules_to_file),"\n";
 		for @rules_to_file -> $elm {
 			$!FileHandle.print($elm ~"\n");
 		}
@@ -191,12 +188,12 @@ class IptablesGenerator {
 					if %!Zones{$from}{'islocal'} ~~ /true/ {
 	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$to}{'interface'} -s $ToIp -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
 	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$from}{'interface'} -s $FromIp -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
-						print "$to -> $from\n";
+#						print "$to -> $from\n";
 					}
 					if %!Zones{$to}{'islocal'} ~~ /true/ {
 	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A INPUT -i %!Zones{$from}{'interface'} -s $FromIp -d $ToIp -j {$from}-{$to}\\n\"\)"} = 1;
 	                	                %ToBeCreatedAddLocal{"\$!FileHandle.print\(\"iptables -A OUTPUT -o %!Zones{$to}{'interface'} -s $ToIp -d $FromIp -j {$to}-{$from}\\n\"\)"} = 1;
-						print "$from -> $to\n";
+#						print "$from -> $to\n";
 					}
                 	        }
                 	}

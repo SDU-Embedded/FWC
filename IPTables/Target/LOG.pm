@@ -60,8 +60,7 @@ sub argvec {
 
     return @argv if( $self->error() );
 
-    @argv = ( "--" . $self->{type}, "LOG", ($self->{prefix}? ( '--log-prefix', $self->{prefix} ) : () ) );
-    push @argv, ( "--" . $self->{type}, "LOG", ($self->{level}? ( '--log-level', $self->{level} ) : () ) );
+    @argv = ( "--" . $self->{type}, "LOG", ($self->{prefix}? ( '--log-prefix', $self->{prefix} ) : () ) , ($self->{prefix} ? ('--log-level', $self->{level}): ()) );
     return @argv;
 }
 

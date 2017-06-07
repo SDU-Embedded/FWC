@@ -1,3 +1,9 @@
-iptables -P INPUT DROP
-iptables -P OUTPUT DROP
+# Set basic policy
+
+iptables -P INPUT   DROP
+iptables -P OUTPUT  DROP
 iptables -P FORWARD DROP
+iptables -t raw -P PREROUTING  ACCEPT
+iptables -t nat -P PREROUTING  ACCEPT
+iptables -t nat -P POSTROUTING ACCEPT
+
