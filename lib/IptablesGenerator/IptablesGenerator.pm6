@@ -81,11 +81,11 @@ class IptablesGenerator {
 					my $test;
 					if "SPORT" eq any($obj.vars()) {
 						print "DEBUG: ", $obj.argvec(1),"\n";
-						$test = $obj.clone1(CHAIN=> "{$alias}-c2s", SPORT => $port);
+						$test = $obj.clone1(CHAIN=> "{$alias}-s2c", SPORT => $port);
 
 	                                        @rules_to_file.push: $test.argvec(1);
 					} elsif ( "DPORT" eq any( $obj.vars() ) ) {
-						$test = $obj.clone1(CHAIN=> "{$alias}-s2c", DPORT => $port);
+						$test = $obj.clone1(CHAIN=> "{$alias}-c2s", DPORT => $port);
 
 	                                        @rules_to_file.push: $test.argvec(1);
 					} else {
@@ -262,7 +262,7 @@ class IptablesGenerator {
 
 #			print $zonename, "IP-range: ", $ip, "\n";
 
-			$!FileHandle.print("-" x 64 ~ "\n");
+			$!FileHandle.print("#" ~"-" x 64 ~ "\n");
 	                for @parsed_objs_output -> $obj {
 				my $j = $obj.clone1(BCAST_SRC=>'0.0.0.0', BCAST_DST => '255.255.255.255', IF=>$interface, SOURCE_IP=>$ip);
 				my $table = $obj.table();

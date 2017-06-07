@@ -1,2 +1,2 @@
-iptables -A %%CHAIN%% -p tcp --dport %%SPORT%% --sport $UNPRIV -m state --state NEW,ESTABLISHED -j ACCEPT
-iptables -A %%CHAIN%% -p tcp --sport %%DPORT%% --dport $UNPRIV -m state --state ESTABLISHED -j ACCEPT
+iptables -A %%CHAIN%% -p tcp --dport %%DPORT%% --sport $UNPRIV -m state --state NEW,ESTABLISHED -j ACCEPT
+iptables -A %%CHAIN%% -p tcp --sport %%SPORT%% --dport $UNPRIV -m state --state ESTABLISHED -j ACCEPT
