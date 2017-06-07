@@ -57,8 +57,8 @@ sub argvec {
 
     return @argv if( $self->error() );
 
-    @argv = ( "--" . $self->{type}, "REJECT", 
-	      ($self->{setmark}? ( '--reject-with', $self->{setmark} ) : () )
+    @argv = ( "--" . $self->{type}, "MARK", 
+	      ($self->{setmark}? ( '--set-mark', $self->{setmark} ) : () )
 	);
     return @argv;
 }
