@@ -106,7 +106,7 @@ class IptablesGenerator {
 		for @rules_to_file -> $elm {
 			$!FileHandle.print($elm ~"\n");
 		}
-		$!FileHandle.say("#---------- End create rules --------#");
+		$!FileHandle.say("#---------- End create rules --------#\n\n");
 	}
 
 	method GenerateClientServerProtoChains{
@@ -235,6 +235,7 @@ class IptablesGenerator {
 		my @linesSpoofFooter = self.ReadIptableFromFile("template/spoof/spoof-footer.tmpl");
 		my @linesSpoofOutput = self.ReadIptableFromFile("template/spoof/spoof-output.tmpl");
 		my @linesSpoofPrerouting = self.ReadIptableFromFile("template/spoof/spoof-prerouting.tmpl");
+		my @linesSpoofRules = self.ReadIptableFromFile("template/spoof/spoof-rules.tmpl");
 
 
                 $!FileHandle.print("#------------ Spoof - only allow certain ips to send and receive packets\n");
@@ -248,7 +249,17 @@ class IptablesGenerator {
 #			print $j.argvec(1) ~" --table " ~ $table ~"\n";
 		}
 
-		$!FileHandle.print("\n\n");
+		$!FileHandle.print("#" ~"-" x 64 ~ "\n");
+
+		# Loadin spoof-rules(bogon IPs)
+		@parsed_objs = map { $p5.invoke("IPTables::Rule","parser",split(' ', $_ ))}, @linesSpoofRules;
+                for @parsed_objs -> $obj {
+			my $j = $obj.clone1(BCAST_SRC=>'0.0.0.0', BCAST_DST => '255.255.255.255');
+			my $table = $obj.table();
+	                $!FileHandle.print($j.argvec(1) ~" --table " ~ $table ~"\n");
+#			print $j.argvec(1) ~" --table " ~ $table ~"\n";
+		}
+
 
 		# Generate interface dependent rules
 		my @parsed_objs_prerouting = map { $p5.invoke("IPTables::Rule","parser",split(' ', $_ ))}, @linesSpoofPrerouting;
@@ -268,6 +279,7 @@ class IptablesGenerator {
 			}
 
 
+			$!FileHandle.print("#" ~"-" x 64 ~ "\n");
 	                for @parsed_objs_prerouting -> $obj {
 				my $j = $obj.clone1(BCAST_SRC=>'0.0.0.0', BCAST_DST => '255.255.255.255', IF=>$interface, SOURCE_IP=>$ip);
 				my $table = $obj.table();
@@ -279,7 +291,7 @@ class IptablesGenerator {
 		}
 
 
-		$!FileHandle.print("\n\n");
+		$!FileHandle.print("#" ~"-" x 64 ~ "\n");
 
 		# Footer - jump if no table match
 		@parsed_objs = map { $p5.invoke("IPTables::Rule","parser",split(' ', $_ ))}, @linesSpoofFooter;

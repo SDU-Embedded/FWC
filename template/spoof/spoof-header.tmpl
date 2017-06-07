@@ -1,7 +1,8 @@
  iptables -t mangle -N LOGSpoof
 
  iptables -t mangle -A LOGSpoof -j LOG --log-prefix "FWDL_Spoofed_Source_Packet:" --log-level info
- iptables -t mangle -A LOGSpoof -j MARK --set-mark 0xFFFFFFFF
+# iptables -t mangle -A LOGSpoof -j MARK --set-mark 0xFFFFFFFF
+ iptables -t mangle -A LOGSpoof -j DROP
 
  iptables -t mangle -N SpoofedSrc
 
