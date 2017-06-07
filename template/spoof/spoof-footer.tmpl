@@ -1,0 +1,8 @@
+iptables -t mangle -A OUTPUT -s %%BCAST_SRC%% -j LOGSpoof
+iptables -t mangle -A OUTPUT -d %%BCAST_SRC%% -j LOGSpoof
+iptables -t mangle -A OUTPUT -j SpoofedSrc
+
+
+iptables -t mangle -A PREROUTING -s %%BCAST_SRC%% -j LOGSpoof
+iptables -t mangle -A PREROUTING -d %%BCAST_SRC%% -j LOGSpoof
+iptables -t mangle -A PREROUTING -j SpoofedSrc

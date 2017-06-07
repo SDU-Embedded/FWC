@@ -85,7 +85,7 @@ sub argvec {
 
     return @argv if( $self->error() );
 
-#    return @argv if not (defined ($self->{target})); # hack
+    return @argv if not (defined ($self->{target})); # hack
 
     @argv = ( $self->{target}->argvec() );
     

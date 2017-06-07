@@ -2,10 +2,10 @@
 .\" Contact mathias@mneerup.dk to correct errors or typos.
 .TH man 8 "28 May 2017" "0.1" "fwc man page"
 .\" Man pages written by Mathias Neerup (manee12@student.sdu.dk) (may 2017)
-.\"			THE BEER-WARE LICENSE (Revision 42):
-.\"			As long as you retain this notice you
-.\"			can do whatever you want with this stuff. If we meet some day, and you think
-.\"			this stuff is worth it, you can buy me a beer in return Mathias Neerup
+.\"                     THE BEER-WARE LICENSE (Revision 42):
+.\"                     As long as you retain this notice you
+.\"                     can do whatever you want with this stuff. If we meet some day, and you think
+.\"                     this stuff is worth it, you can buy me a beer in return Mathias Neerup
 .\"
 .\"
 .SH NAME
@@ -13,11 +13,186 @@ fwc \- Compiler for compiling highlevel firewall descriptions into iptable rules
 .SH SYNOPSIS
 fwc \-\-policy SOURCE \-\-zones SOURCE [\fIoptions...\fP]
 .SH DESCRIPTION
-FWC is a firewall compiler that aims to make  writing firewall rules easier. ...
+FWC is a firewall compiler that aims to make writing and maintaining firewall-rules easier. Rules are described in a high-level language which gets compiled into iptables commands. The output of the FWC is then just a bash script which can be run on a linux firewall supporting iptables or the computer where the rules where compiled. It should be noted that the FWC does not need to be run on the same computer as the firewall is running since it does not collect any information from the system.
+The input to the FWC is zone definitions, policies and templates. Each is described more in detail below.
 .SH OPTIONS
 .TP
 \fB\-\-dump_rules\fP 
-This options dumps all rules in a table to stdout.
+This option dumps all rules to stdout. The columns headers consist of "Protocol", "From", "To", "Options.
+"Protocol" is the name of a protocol. This should be names from /etc/service. Example of this: domain, http, https and smtp.
+"From" is the name of the zone from which rules apply.
+"To" is the name of the zone to which rules apply.
+"Options" lists options if any. The idea is to specify source port, destination port, etc. in order to overwrite the default protocol definitions. An example of this could be to run VPN over port 443(https). No options are supported yet. Please see TODO for information of coming features.
+.TP
+\fB\-\-dump_zones\fP 
+This option writes all defined zones to stdout. The column headers consist of "Zone name", "Interface", "IsLocal", "IP" and "CIDR".
+"Zone name" is simply the name of the zone defined in one of the files with the .zone extension.
+"Interface" is simply the interface specificed in the zone definition.
+"IsLocal" states weather a zone is local or not. Local means that the zone is on the firewall. This is used so that the compiler knows whether rules using a particular zone should go into the FORWARD or INPUT/OUTPUT chain.
+"IP" is the IP of the interface.
+"CIDR" is the size of the network in CIDR notation.
+ ex. /8 means the size of the network is $2^{32-8}$ = 16777216 IPs.
+.TP
+\fB\-\-dump_format\fP 
+
+This option decides whether dumping should be to a table or json.
+Example of table dump.
+
+O-----------O-----------O---------O--------------O------O 
+.br
+| Zone name | Interface | IsLocal | IP           | CIDR | 
+.br
+O===========O===========O=========O==============O======O
+.br
+| Sodanet   | vlan5     | false   | 10.10.10.0   | 24   |
+.br
+| Internal  | wlan0     | true    | 10.10.10.250 | 24   |
+.br
+| World     | world     | false   | 0.0.0.0      | 0    |
+.br
+---------------------------------------------------------
+
+Example of json output
+
+{
+.br
+  "FWC": [
+.br
+    {
+.br
+      "Zone name": "Sodanet",
+.br
+      "Interface": "vlan5",
+.br
+      "IsLocal": "false",
+.br
+      "IP": "10.10.10.0",
+.br
+      "CIDR": "24"
+.br
+    },
+.br
+    {
+.br
+      "Zone name": "Internal",
+.br
+      "Interface": "wlan0",
+.br
+      "IsLocal": "true",
+.br
+      "IP": "10.10.10.250",
+.br
+      "CIDR": "24"
+.br
+    },
+.br
+    {
+.br
+      "Zone name": "World",
+.br
+      "Interface": "world",
+.br
+      "IsLocal": "false",
+.br
+      "IP": "0.0.0.0",
+.br
+      "CIDR": "0"
+.br
+    }
+.br
+  ]
+.br
+}
+
+.SH Policies
+A policy describes what traffic which is allowed through the firewall, from one zone to another. An example of this is a policy allowing egress http traffic so that the firewall(or the machines behind the firewall) can update their repositories. A policy only states weather the traffic is ingress or egress, however the firewall will infer that the request as well as the response should be allowed. The naming of the policy files are irrelevant, however their file extension must be .policy to be read be the FWC.
+An example of a valid policy is shown below:
+.br
+WorldInternalHttp.zones
+.br
+Policy http:
+.br
+    World => Internal
+.br
+    
+More examples can be seen in the Example section below.
+
+.SH Zones
+Zones are defined in files with .zone as file extension. By convention, only one zone should be defined pr. file.
+A zone defines a network or host defined by the ip-range in the zone definition. An example of a zone definition:
+.br
+\fBName_of_zone{Name_of_interface} is [local] at IP/CIDR.\fP
+.br
+Name_of_zone and Name_of_interface should consist of alphanumeric characters only.
+If local is specified, it means the zone is local to the firewall. This is required so that the FWC knows when a rule should go to the FORWARD or INPUT/OUTPUT chain. If the firewall should be allowed to talk to NTP servers, the FROM-zone needs to be local so that iptables-ruls will be created in the OUTPUT/INPUT chain. If on the other hand, the hosts behind the firewall are allowed to talk to NTP servers, the FROM zone should not be marked as local, since these rules should go to the FORWARD zone. Examples of this can be seen in the Example sections.
+
+Internal is the name .....
+
+
+.SH Protocols
+Protocols are defined in protocols with .proto as file extension.
+.br
+An example of a protocol:
+.br
+iptables -A %%CHAIN%% -p tcp --dport %%SPORT%% --sport $UNPRIV -m state --state NEW,ESTABLISHED -j ACCEPT
+.br
+iptables -A %%CHAIN%% -p tcp --sport %%DPORT%% --dport $UNPRIV -m state --state ESTABLISHED -j ACCEPT
+.br
+Arguments starting and ending with %% are being substituted by the FWC. The example above shows a generic TCP connection such as http, https etc. Whether this permits ingres or esgres connections depends on the context in which the two iptables-rules are used.
+CHAIN is the chain name where the rule is append to. An example of a chain name is: http-c2s, or http-s2c. this should be interpreted as "trafic of type http from client to server". 
+Like stated above, the chain that jumps to this chain decides whether this is ingres or esgres trafic.  
+The naming of chains and how they work can be seen in section Iptables Output.
+
+The variables SPORT and DPORT are required in order for the FWC to know which of the two rules are for incoming and outgoing connections. This might(should) be changed in the future, see section TODO.
+
+
+.SH "Autogenerated script"
+The iptable-chains look be a little complicated at first, but is quite cleaver since it reuses the protocol-rules(http-c2s) if used by multiple policies, but also because it scales very well with the number of policies and is relatively easy to debug.
+.br
+The example below is for forwarding http traffic originating on the inside of the network.
+.br
+Chain FORWARD (policy DROP 0 packets, 0 bytes)
+.br
+num pkts bytes target     prot opt in     out     source               destination         
+.br
+ 1    0     0 LabNet-World  all  --  vlan5  world   10.10.10.0/24        0.0.0.0/0           
+.br
+ 2    0     0 World-LabNet  all  --  world  vlan5   0.0.0.0/0            10.10.10.0/24 
+
+.br
+Chain LabNet-World (1 references)
+.br
+num pkts bytes target     prot opt in     out     source               destination         
+.br
+ 3   0     0 www-c2s     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp dpt:80
+
+.br
+Chain World-LabNet (1 references)
+.br
+num pkts bytes target     prot opt in     out     source               destination         
+.br
+ 4   0     0 www-s2c     tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spt:80
+
+.br
+Chain www-c2s (1 references)
+.br
+num pkts bytes target     prot opt in     out     source               destination         
+.br
+ 5   0     0 ACCEPT      tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spts:1024:65000 dpt:80 state NEW,ESTABLISHED
+.br
+
+Chain www-s2c (1 references)
+.br
+num pkts bytes target     prot opt in     out     source               destination         
+.br
+ 6   0     0 ACCEPT      tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spt:80 dpts:1024:65000 state ESTABLISHED
+
+
+Packets coming from LabNet to World will match the rule 1 and then jump to chain LabNet-World(should be read as from LabNet to World). It will then traverse the rules, in this case line 3. If the packet as of type tcp with destination port 80, it will then jump to www-c2s. In chain www-c2s it is accepted if it is with unprivileged ports to port 80. The state module registers the connection as new.
+When the response is received from World to LabNet, the packet packet jumps to World-LabNet where it matches rule 4 since it is the response from port 80. It then jumps to chain www-s2c where it is accepted since the connection is marked as established and the packet is sent from port 80 and targeted an unprivileged port.
+When more protocols are added that permits traffic from LabNet to World, then will be added in the LabNet-World chain, and the responses to the World-LabNet chain. By inspection of the packet-counts it can be seen where packets match and where they are dropped. For more information about loggin packets, see section TODO.
+The example above is in the filter table after the packets have been NAT'ed. For more information regarding NAT, see section TODO.
+
 .SH "EXAMPLES"
 .PP
 \fBExample\ \&1.\ \&Allowing http from "homenet" to "internet"\fR
@@ -39,4 +214,3 @@ No known bugs.
 Mathias Neerup(mathias@mneerup.dk) wrote the parser and the overall struture of the fwc.
 .PP
 John Hallam(john@hallam.dk) supervised the project and wrote the backend for reading and parsing protocols, targets etc.
-

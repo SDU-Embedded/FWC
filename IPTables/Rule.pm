@@ -80,9 +80,10 @@ sub argvec {
     return @argv if( $self->error() );
 
     @argv = map { $_ ? $_->argvec() : (); } ( $self->{ced}, $self->{match}, $self->{target} );
-    unshift(@argv, "--table ".$self->{table} );
+#    unshift(@argv, "--table ".$self->{table} );
 
-    if(wantarray and not $scalar){ # If called in list context
+#	print $self->{table},"\n";
+    if(not $scalar ){ # If called in list context
         return @argv;
     } else {
         return "iptables ".join(" ", @argv);

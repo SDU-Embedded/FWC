@@ -1,0 +1,4 @@
+iptables -t mangle -A PREROUTING -i %%IF%% -s %%SOURCE_IP%% -j ACCEPT
+iptables -t mangle -A PREROUTING -i %%IF%% -s %%BCAST_SRC%% -j ACCEPT
+iptables -t mangle -A PREROUTING -i %%IF%% -d %%BCAST_DST%% -j ACCEPT
+
