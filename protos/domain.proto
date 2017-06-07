@@ -1,0 +1,5 @@
+# DNS request client to server
+iptables -A %%CHAIN%% -p udp --dport %%DPORT%% --sport $UNPRIV -m state --state NEW,ESTABLISHED -j ACCEPT
+
+# DNS response server to client
+iptables -A %%CHAIN%% -p udp --sport %%SPORT%% --dport $UNPRIV -m state --state ESTABLISHED -j ACCEPT
