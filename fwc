@@ -85,7 +85,7 @@ multi MAIN( Str :$policies=".", Str :$zones=".", Int :$verbose = 0, Bool :$dump_
 	$iptablesGenerator.GenerateChains();
 	$iptablesGenerator.GenerateRules();
 #	$iptablesGenerator.GenerateClientServerProtoChains();
-#	$iptablesGenerator.GenerateSpoofRules();
+	$iptablesGenerator.GenerateSpoofRules();
 }
 
 

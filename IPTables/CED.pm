@@ -34,6 +34,8 @@ sub _build_parse {
     $self->{parse} = [
 	'append|A=s'             => sub { push @{$self->{ptmp}->{append}}, $_[1];
 	},
+	'new-chain|N=s'             => sub { push @{$self->{ptmp}->{"new-chain"}}, $_[1];
+	},
 	'insert|I=s{1,2}'        => sub { push @{$self->{ptmp}->{insert}}, $_[1];
 	},
 	'replace|R=s{2,2}'       => sub { push @{$self->{ptmp}->{replace}}, $_[1];

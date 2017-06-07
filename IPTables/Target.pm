@@ -85,6 +85,8 @@ sub argvec {
 
     return @argv if( $self->error() );
 
+#    return @argv if not (defined ($self->{target})); # hack
+
     @argv = ( $self->{target}->argvec() );
     
     return @argv;    
@@ -101,7 +103,7 @@ sub argvec {
 __PACKAGE__->__class( {
     parse	=> { t => 'opt', m => 'ro', },
     vars	=> { t => 'opt', m => 'ao', d => '[ ]', },
-    target	=> { t => 'req', m => 'rw',  },
+    target	=> { t => 'req', m => 'rw',  }, # req -> opt
     table	=> { t => 'req', m => 'ro', d => '"filter"' },
     type	=> { t => 'req', m => 'rw', d => '"jump"' },
     error	=> { t => 'req', m => 'ar', d => '[ ]' },

@@ -46,6 +46,7 @@ sub _build_parse {
     $self->{parse} = [
 	't|table=s'	=> \$self->{table},
 	];
+
     # Add in the option parser data from the sub-objects
     for my $o ( $self->{ced}, $self->{match}, $self->{target} ) {
 	$self->_add_to_parser( $o->parse() );
@@ -79,6 +80,7 @@ sub argvec {
     return @argv if( $self->error() );
 
     @argv = map { $_ ? $_->argvec() : (); } ( $self->{ced}, $self->{match}, $self->{target} );
+    unshift(@argv, "--table ".$self->{table} );
 
     if(wantarray and not $scalar){ # If called in list context
         return @argv;

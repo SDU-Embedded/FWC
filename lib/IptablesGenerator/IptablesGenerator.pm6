@@ -37,8 +37,8 @@ sub load_protocol($protocol){
 }
 
 class IptablesGenerator {
-	has %!Zones; 
-	has %!Rules;  
+	has %!Zones;
+	has %!Rules;
 
 	has $!FileHandle;
 	has %!UniqProtocols;
@@ -52,7 +52,6 @@ class IptablesGenerator {
 
 	submethod GenerateRules {
 		my @rules_to_file;
-#		my %UniqProtocols;
 		for %!Rules.kv -> $from, @rules {
                 	my $FromIp = $p5.invoke('NetAddr::IP','new', %!Zones{$from}{'ip'} ~ '/' ~ %!Zones{$from}{'cidr'});
                 	for @rules -> $rule {
@@ -64,9 +63,9 @@ class IptablesGenerator {
 		}
 
 
-		#say %UniqProtocols.gist;
 		for %!UniqProtocols.keys -> $protocol {
 
+			print $protocol,"\n";
 			my @content = load_protocol($protocol);
 			if @content.elems > 0 {
 				my ($port,$alias) = self.GetPortFromServiceName($protocol);
@@ -76,10 +75,15 @@ class IptablesGenerator {
 				for @parsed_objs -> $obj {
 					my $test;
 					if "SPORT" eq any($obj.vars()) {
+						print "DEBUG: ", $obj.argvec(1),"\n";
 						$test = $obj.clone1(CHAIN=> "{$alias}-c2s", SPORT => $port);
+						print "not in here 1: ", $test.argvec(1),"\n";
+
 	                                        @rules_to_file.push: $test.argvec(1);
 					} elsif ( "DPORT" eq any( $obj.vars() ) ) {
 						$test = $obj.clone1(CHAIN=> "{$alias}-s2c", DPORT => $port);
+						print "not in here 2: ", $test.argvec(1),"\n";
+
 	                                        @rules_to_file.push: $test.argvec(1);
 					} else {
 						print "SPORT or DPORT not found - I got no clue where this rule should be going...";
@@ -98,6 +102,7 @@ class IptablesGenerator {
 		self.GenerateClientServerProtoChains();
 
 		$!FileHandle.print("#---------- Create rules --------#\n");
+		print join("\n",@rules_to_file),"\n";
 		for @rules_to_file -> $elm {
 			$!FileHandle.print($elm ~"\n");
 		}
@@ -135,7 +140,7 @@ class IptablesGenerator {
 		for @ToBeCreated -> $rule {
 			 EVAL($rule);
 		}
-		$!FileHandle.print("#-------- End append protos to proto-client/server chains ------\n");
+		$!FileHandle.print("#-------- End append protos to proto-client/server chains ------\n\n");
 	}
 
 	submethod GenerateUniqueChainNames {
@@ -210,19 +215,50 @@ class IptablesGenerator {
 		$!FileHandle.print("#-------- End add zone-chains(Local) to chains ------\n\n");
 
 	}
+
 	submethod GenerateSpoofRules {
 		my $file = "template/spoof.tmpl";
-		my $spoofTemplate = try slurp($file);
+		my @lines = $file.IO.lines;
+
+		@lines =  grep(/^\s*iptables/, @lines);
+                @lines = map {$_ ~~ s/^\s*iptables\s*//; $_}, @lines;
+
                 if ($!) {
                      note "Unable to open and read file, $file, $!";
                 }
 
-		$spoofTemplate ~~ s:g/\$IF\$/foo-interface/;
-		$spoofTemplate ~~ s:g/\$SOURCE_IP\$/cool-ip2-cool/;
+		say join("\n",@lines);
+#		return;
 
-		$!FileHandle.print("#------------ Spoof - only allow certain ips to send and receive packets\n");
-		$!FileHandle.print($spoofTemplate);
-		$!FileHandle.print("#------------ End spoof - only allow certain ips to send and receive packets\n");
+		my @parsed_objs = map { $p5.invoke("IPTables::Rule","parser",split(' ', $_ ))}, @lines;
+                for @parsed_objs -> $obj {
+#			print $obj.__dump(0),"\n";
+			print $obj.argvec(),"\n";
+#                	my $test;
+#                                        if "SPORT" eq any($obj.vars()) {
+#                                                $test = $obj.clone1(CHAIN=> "{$alias}-c2s", SPORT => $port);
+#                                                @rules_to_file.push: $test.argvec(1);
+#                                        } elsif ( "DPORT" eq any( $obj.vars() ) ) {
+#                                                $test = $obj.clone1(CHAIN=> "{$alias}-s2c", DPORT => $port);
+#                                                @rules_to_file.push: $test.argvec(1);
+#                                        } else {
+#                                                print "SPORT or DPORT not found - I got no clue where this rule should be going...";
+#                                        }
+
+#                                        my @test = @($obj.match.matches);
+#                                        print "transport protocol: ", @test[2].match(), "\n";
+
+
+#                                        %!UniqProtocols{$protocol} = TransportProto => @test[2].match();
+		}
+
+
+#		$spoofTemplate ~~ s:g/\$IF\$/foo-interface/;
+#		$spoofTemplate ~~ s:g/\$SOURCE_IP\$/cool-ip2-cool/;
+
+#		$!FileHandle.print("#------------ Spoof - only allow certain ips to send and receive packets\n");
+#		$!FileHandle.print($spoofTemplate);
+#		$!FileHandle.print("#------------ End spoof - only allow certain ips to send and receive packets\n");
 	}
 
 	method GetPortFromServiceName($protocol){
