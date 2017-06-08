@@ -1,6 +1,6 @@
 .\" Manpage for fwc.
 .\" Contact mathias@mneerup.dk to correct errors or typos.
-.TH man 8 "28 May 2017" "0.1" "fwc man page"
+.TH man 8 "9 Jun 2017" "0.1" "fwc man page"
 .\" Man pages written by Mathias Neerup (manee12@student.sdu.dk) (may 2017)
 .\"                     THE BEER-WARE LICENSE (Revision 42):
 .\"                     As long as you retain this notice you
@@ -13,29 +13,40 @@ fwc \- Compiler for compiling highlevel firewall descriptions into iptable rules
 .SH SYNOPSIS
 fwc \-\-policy SOURCE \-\-zones SOURCE [\fIoptions...\fP]
 .SH DESCRIPTION
-FWC is a firewall compiler that aims to make writing and maintaining firewall-rules easier. Rules are described in a high-level language which gets compiled into iptables commands. The output of the FWC is then just a bash script which can be run on a linux firewall supporting iptables or the computer where the rules where compiled. It should be noted that the FWC does not need to be run on the same computer as the firewall is running since it does not collect any information from the system.
-The input to the FWC is zone definitions, policies and templates. Each is described more in detail below.
+FWC is a firewall compiler that aims to make writing and maintaining firewall-rules easier. Rules are described in a high-level language which gets compiled into iptables commands. The output of the FWC is then just a bash script(IptablesRun.sh) which can be run on a linux firewall supporting iptables or the computer where the rules where compiled. It should be noted that the FWC does not need to be run on the same computer as the firewall is running since it does not collect any information from the system.
+The input to the FWC is zone definitions, policies, protocols and templates. Each is described more in detail below.
 .SH OPTIONS
 .TP
 \fB\-\-dump_rules\fP 
-This option dumps all rules to stdout. The columns headers consist of "Protocol", "From", "To", "Options.
+This option dumps all rules to stdout. The column headers consist of "Protocol", "From", "To", "Options.
+.br
 "Protocol" is the name of a protocol. This should be names from /etc/service. Example of this: domain, http, https and smtp.
+.br
 "From" is the name of the zone from which rules apply.
+.br
 "To" is the name of the zone to which rules apply.
+.br
 "Options" lists options if any. The idea is to specify source port, destination port, etc. in order to overwrite the default protocol definitions. An example of this could be to run VPN over port 443(https). No options are supported yet. Please see TODO for information of coming features.
+.br
 .TP
 \fB\-\-dump_zones\fP 
 This option writes all defined zones to stdout. The column headers consist of "Zone name", "Interface", "IsLocal", "IP" and "CIDR".
+.br
 "Zone name" is simply the name of the zone defined in one of the files with the .zone extension.
+.br
 "Interface" is simply the interface specificed in the zone definition.
+.br
 "IsLocal" states weather a zone is local or not. Local means that the zone is on the firewall. This is used so that the compiler knows whether rules using a particular zone should go into the FORWARD or INPUT/OUTPUT chain.
+.br
 "IP" is the IP of the interface.
+.br
 "CIDR" is the size of the network in CIDR notation.
  ex. /8 means the size of the network is $2^{32-8}$ = 16777216 IPs.
 .TP
-\fB\-\-dump_format\fP 
+\fB\-\-dump_format=[table|json]\fP 
 
 This option decides whether dumping should be to a table or json.
+.br
 Example of table dump.
 
 O-----------O-----------O---------O--------------O------O 
@@ -105,11 +116,11 @@ Example of json output
 }
 
 .SH Policies
-A policy describes what traffic which is allowed through the firewall, from one zone to another. An example of this is a policy allowing egress http traffic so that the firewall(or the machines behind the firewall) can update their repositories. A policy only states weather the traffic is ingress or egress, however the firewall will infer that the request as well as the response should be allowed. The naming of the policy files are irrelevant, however their file extension must be .policy to be read be the FWC.
+A policy describes what traffic is allowed through the firewall, from one zone to another. An example of this is a policy allowing egress http traffic so that the firewall(or the machines behind the firewall) can update their repositories. A policy only states weather the traffic is ingress or egress, however the firewall will infer that the request as well as the response should be allowed. The naming of the policy files are irrelevant, however their file extension must be .policy to be read be the FWC.
 An example of a valid policy is shown below:
-.br
-WorldInternalHttp.zones
-.br
+
+WorldInternalHttp.zone:
+
 Policy http:
 .br
     World => Internal
@@ -119,38 +130,39 @@ More examples can be seen in the Example section below.
 
 .SH Zones
 Zones are defined in files with .zone as file extension. By convention, only one zone should be defined pr. file.
-A zone defines a network or host defined by the ip-range in the zone definition. An example of a zone definition:
+A zone defines a network or host defined by the IP-range in the zone definition. An example of a zone definition:
 .br
 \fBName_of_zone{Name_of_interface} is [local] at IP/CIDR.\fP
 .br
 Name_of_zone and Name_of_interface should consist of alphanumeric characters only.
 If local is specified, it means the zone is local to the firewall. This is required so that the FWC knows when a rule should go to the FORWARD or INPUT/OUTPUT chain. If the firewall should be allowed to talk to NTP servers, the FROM-zone needs to be local so that iptables-ruls will be created in the OUTPUT/INPUT chain. If on the other hand, the hosts behind the firewall are allowed to talk to NTP servers, the FROM zone should not be marked as local, since these rules should go to the FORWARD zone. Examples of this can be seen in the Example sections.
 
-Internal is the name .....
 
 
 .SH Protocols
 Protocols are defined in protocols with .proto as file extension.
 .br
 An example of a protocol:
-.br
+
+
 iptables -A %%CHAIN%% -p tcp --dport %%SPORT%% --sport $UNPRIV -m state --state NEW,ESTABLISHED -j ACCEPT
 .br
 iptables -A %%CHAIN%% -p tcp --sport %%DPORT%% --dport $UNPRIV -m state --state ESTABLISHED -j ACCEPT
-.br
+
+
 Arguments starting and ending with %% are being substituted by the FWC. The example above shows a generic TCP connection such as http, https etc. Whether this permits ingres or esgres connections depends on the context in which the two iptables-rules are used.
-CHAIN is the chain name where the rule is append to. An example of a chain name is: http-c2s, or http-s2c. this should be interpreted as "trafic of type http from client to server". 
+CHAIN is the chain name where the rule is append to. An example of a chain name is: http-c2s, or http-s2c. This should be interpreted as "trafic of type http from client to server". 
 Like stated above, the chain that jumps to this chain decides whether this is ingres or esgres trafic.  
-The naming of chains and how they work can be seen in section Iptables Output.
+The naming of chains and how they work can be seen in section "Autogenerated script".
 
 The variables SPORT and DPORT are required in order for the FWC to know which of the two rules are for incoming and outgoing connections. This might(should) be changed in the future, see section TODO.
 
 
 .SH "Autogenerated script"
-The iptable-chains look be a little complicated at first, but is quite cleaver since it reuses the protocol-rules(http-c2s) if used by multiple policies, but also because it scales very well with the number of policies and is relatively easy to debug.
+The iptable-chains might seem a little complicated at first, but is quite cleaver since it reuses the protocol-rules(http-c2s) if used by multiple policies, but also because it scales very well with the number of policies and is relatively easy to debug by inspection of the packet counters.
 .br
 The example below is for forwarding http traffic originating on the inside of the network.
-.br
+
 Chain FORWARD (policy DROP 0 packets, 0 bytes)
 .br
 num pkts bytes target     prot opt in     out     source               destination         
@@ -188,10 +200,41 @@ num pkts bytes target     prot opt in     out     source               destinati
  6   0     0 ACCEPT      tcp  --  *      *       0.0.0.0/0            0.0.0.0/0            tcp spt:80 dpts:1024:65000 state ESTABLISHED
 
 
-Packets coming from LabNet to World will match the rule 1 and then jump to chain LabNet-World(should be read as from LabNet to World). It will then traverse the rules, in this case line 3. If the packet as of type tcp with destination port 80, it will then jump to www-c2s. In chain www-c2s it is accepted if it is with unprivileged ports to port 80. The state module registers the connection as new.
+Packets coming from LabNet to World will match the rule 1 and then jump to chain LabNet-World(should be read as from LabNet to World). It will then traverse the rules, in this case line 3. If the packet is of type tcp with destination port 80, it will then jump to www-c2s. In chain www-c2s it is accepted if it is with unprivileged source port to destination port 80. The state module registers the connection as new.
 When the response is received from World to LabNet, the packet packet jumps to World-LabNet where it matches rule 4 since it is the response from port 80. It then jumps to chain www-s2c where it is accepted since the connection is marked as established and the packet is sent from port 80 and targeted an unprivileged port.
-When more protocols are added that permits traffic from LabNet to World, then will be added in the LabNet-World chain, and the responses to the World-LabNet chain. By inspection of the packet-counts it can be seen where packets match and where they are dropped. For more information about loggin packets, see section TODO.
+When more protocols are added that permits traffic from LabNet to World, they will then be added in the LabNet-World chain, and the responses to the World-LabNet chain. By inspection of the packet-counts it can be seen where packets match and where they are dropped. For more information about loggin packets, see section TODO.
 The example above is in the filter table after the packets have been NAT'ed. For more information regarding NAT, see section TODO.
+
+.SH "Spoofing"
+The FWC default generates rules which filters out bogon IP's when not expected on the interfaces. An example of this is if an interface receives a packet from a bogon IP which does not belong to that interface. The packet will then get DROP'ed so that the firewall does not answer to an unrouteable (bogon)IP.
+
+.SH "Templates"
+The compiler imports templates, where static commands as well as iptables rules can be defined. Whether it is iptable commands or bash depends on the template file.
+
+Templates can be found in template/.
+.br
+template/header.tmpl is a bash script which is imported in the beginning of the generated script. This file defines kernel parameters, clearing of chains, adding loopback traffic etc.
+.br
+template/footer.tmpl is a bash script which is imported at the end of the generated script. This file sets the default policy of the iptables chains.
+
+.TP
+\fBSpoof\fP
+.br
+The templates used in spoofing are imported and generated in the listed order below.
+.br
+The spoof subfolder contains rules used for source spoofing.
+.br
+template/spoof/spoof-header.tmpl contains general iptable-commands such as creating new chains, create LOG and DUMP rules. 
+.br
+template/spoof/spoof-footer.tmpl contains rules used for adding jump targets in case no other rules are matched.
+.br
+template/spoof/spoof-output.tmpl contains iptable-rules which are run for each interface defined. These rules only concerns the OUTPUT chain in the mangle table.
+.br
+template/spoof/spoof-prerouting.tmpl contains iptable-rules which are run as above, however this applies for the PREROUTING chain in the mangle table.
+.br
+template/spoof/spoof-rules.tmpl contains private IP-ranges which should not be allowed to be send from an interface, unless for that IP that belongs to that interface.
+
+
 
 .SH "EXAMPLES"
 .PP
@@ -201,15 +244,61 @@ Policy ftp:
         Homenet=>World
 .RE
 
-\fBExample\ \&2.\ \&Allowing http from "homenet" to "internet" with custom port - in this case 1234\fR
+\fBExample\ \&2.\ \&Allowing http from "homenet" to "internet" with custom port - in this case 1234(See section TODO)\fR
 .RS 4
 Policy http{port=1234}:
         Homenet=>World
 .RE
+
+\fBExample\ \&2.\ \&Example of a zone definition. Zone world is at interface eth0, not local, containing all IP's\fR
+.RS 4
+World{eth0} is at 0.0.0.0/0
+
+For more working examples, see policy/, proto/ and zones/
+.RE
 .SH SEE ALSO
-useradd(8), passwd(5), nuseradd.debian(8) 
-.SH BUGS
-No known bugs.
+The following link shows an image which gives a nice overview of iptables.
+.br
+http://www.linuxhomenetworking.com/wiki/images/f/f0/Iptables.gif
+.SH TODO
+.PP
+\fBNAT\fR
+.RS 4
+NAT is not implemented in the current version. So far, NAt rules are added to the header.tmpl file.
+.br
+.RE
+\fBICMP\fR
+.RS 4
+ICMP packets are not supported since the FWC needs SPORT and DPORT when reading the protocols, in order to know if a rule is for incomming or outgoing connections. This will be fixed in a later version, possibly by splitting the proto rules into two files - http-s2c.proto and http-c2s.proto.
+.br
+.RE
+\fBOptions\fR
+.RS 4
+The current version does not support any options in the policy files. If a policy uses http, it will be using DPORT 80 as defined in /etc/services.
+.br
+More options should be available as parameter to the FWC, such as name of output script, verbosity,  template folder, etc.
+.br
+.RE
+\fBError handling\fR
+.RS 4
+Very little error handling has been implemented in this version. No error handling exist in the parser, and only little information is thrown to the user if something is wrong or missing.
+.br
+.RE
+\fBLogging\fR
+.br
+.RS 4
+A logging rule should be added to all chains, so that it can be seen when a packet is beeing DROP'ed and from where.
+.RE
+\fBFirrwall backup\fR
+.RS 4
+In later versions, the FWC might do a backup before overwriting the iptables rules. It could for instance export using iptables-save and keep x compies which are rotated each time a new firewall is loaded. This could possibly be integrated with a local git repository holding the history of firewall configurations. Each time the FWC is run, it should save the current rules, and add them to git.
+.RE
+\fBTemplate files\fR
+.RS 4
+The next version should make a clear distinction between which template files that hold iptables-rules and which is for bash script, maybe with different file extensions.
+.br
+.SH Bugs
+No known bugs, however the spoofing should be more thoroughly tested.
 .SH AUTHOR
 Mathias Neerup(mathias@mneerup.dk) wrote the parser and the overall struture of the fwc.
 .PP
