@@ -9,7 +9,7 @@
 .\"
 .\"
 .SH NAME
-fwc \- Compiler for compiling highlevel firewall descriptions into iptable rules.
+fwc \- Compiler for compiling highlevel firewall descriptions into iptable rules. For dependencies and install instructions, check README.md in repository at https://github.com/Exchizz/FWC
 .SH SYNOPSIS
 fwc \-\-policy SOURCE \-\-zones SOURCE [\fIoptions...\fP]
 .SH DESCRIPTION
@@ -238,6 +238,13 @@ template/spoof/spoof-rules.tmpl contains private IP-ranges which should not be a
 
 .SH "EXAMPLES"
 .PP
+\fBExample\ \&0.\ \&Example-run of FWC cloned from github\fR
+.RS 4
+fwc --policies=policies --zones=./zones  --dump_rules --dump_zones 
+
+The above command will compile the policies and zones in ./policies and ./zones, respectively. The output will be next to the fwc-command called IptablesRun.sh
+
+.RE
 \fBExample\ \&1.\ \&Allowing http from "homenet" to "internet"\fR
 .RS 4
 Policy ftp:
